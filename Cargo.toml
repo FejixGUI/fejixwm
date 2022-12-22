@@ -1,6 +1,80 @@
 [package]
 name = "fejixwm"
 version = "0.0.1"
+description = "Window management library"
+authors = ["Mark Lagodych <lgd.mrk@gmail.com>"]
+
 edition = "2021"
 
-[dependencies]
+
+[features]
+# WARNING: lots of unimplemented features
+
+default = ["interface-only", "static-lib"]
+
+# --- TYPE OF THE INTERFACE ---
+
+# Rust implementation + Rust interface
+interface-default = []
+# No implementation + Rust interface
+interface-only = []
+# Rust implementation + C interface
+interface-extern-c = []
+# External implementation with a C interface + Rust wrapper
+interface-from-extern-c = []
+
+# --- TYPE OF THE LIBRARY ---
+
+# Statically linked library
+static-lib = []
+# Dynamically linked library
+dynamic-lib = []
+
+# --- PLATFORM ---
+
+# Windows API
+platform-winapi = []
+# X11 protocol
+platform-x11 = []
+# Wayland protocol
+platfrom-wayland = []
+# Uses Android NDK API
+platform-android = []
+# Uses macOS Objective-C libraries  
+platform-cocoa = []
+# Uses iOS Objective-C libraries
+platform-cocoa-touch = []
+# Uses HTML/JS/WASM stuff
+platform-web = []
+
+# --- GRAPHICS APIs ---
+
+# API for accessing raw pixels for software rendering 
+graphics-rawpix = []
+# Modern OpenGL
+graphics-opengl = []
+# Vulkan
+graphics-vulkan = []
+# Microsoft DirectX
+graphics-directx = []
+# Apple Metal
+graphics-metal = []
+# WebGL
+graphics-webgl = []
+# HTML5 canvas
+graphics-webcanvas = []
+
+# --- OTHER FEATURES ---
+
+# Uses EGL, a common OpenGL ES API
+feature-opengl-egl = []
+# Uses Windows OpenGL API
+feature-opengl-wgl = []
+# Uses OpenGL over X11 API
+feature-opengl-glx = []
+# Uses native Cocoa OpenGL libraries
+feature-opengl-cocoa = []
+# Chooses OpenGL 3.x / 4.x
+feature-opengl-desktop = []
+# Chooses OpenGL ES 2.x / 3.x
+feature-opengl-es = []

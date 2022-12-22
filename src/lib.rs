@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
-fn foo() {
-    println!("Hello, world!");
-}
+pub mod interface;
+
+mod implementation;
+pub use implementation::*;
