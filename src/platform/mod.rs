@@ -2,5 +2,8 @@
 #[path = "x11/mod.rs"]
 pub mod imlplementation;
 
-#[cfg(not(feature = "interface-only"))]
+#[cfg(not(feature = "impl"))]
+#[path = "null/mod.rs"]
+pub mod implementation;
+
 pub use self::implementation::*;

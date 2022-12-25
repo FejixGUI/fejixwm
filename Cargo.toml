@@ -10,18 +10,11 @@ edition = "2021"
 [features]
 # WARNING: lots of unimplemented features
 
-default = ["interface-only", "static-lib"]
+default = ["static-lib"]
 
-# --- TYPE OF THE INTERFACE ---
 
-# Rust implementation + Rust interface
-interface-default = []
-# No implementation + Rust interface
-interface-only = []
-# Rust implementation + C interface
-interface-extern-c = []
-# External implementation with a C interface + Rust wrapper
-interface-from-extern-c = []
+# Include C interface
+extern-c = []
 
 # --- TYPE OF THE LIBRARY ---
 
@@ -32,20 +25,22 @@ dynamic-lib = []
 
 # --- PLATFORM ---
 
+# Indicates that any platform was selected
+-platform-impl = []
 # Windows API
-platform-winapi = []
+platform-winapi = ["-platform-impl"]
 # X11 protocol
-platform-x11 = []
+platform-x11 = ["-platform-impl"]
 # Wayland protocol
-platfrom-wayland = []
+platfrom-wayland = ["-platform-impl"]
 # Uses Android NDK API
-platform-android = []
+platform-android = ["-platform-impl"]
 # Uses macOS Objective-C libraries  
-platform-cocoa = []
+platform-cocoa = ["-platform-impl"]
 # Uses iOS Objective-C libraries
-platform-cocoa-touch = []
+platform-cocoa-touch = ["-platform-impl"]
 # Uses HTML/JS/WASM stuff
-platform-web = []
+platform-web = ["-platform-impl"]
 
 # --- GRAPHICS APIs ---
 
@@ -66,15 +61,23 @@ graphics-webcanvas = []
 
 # --- OTHER FEATURES ---
 
-# Uses EGL, a common OpenGL ES API
-feature-opengl-egl = []
-# Uses Windows OpenGL API
-feature-opengl-wgl = []
-# Uses OpenGL over X11 API
-feature-opengl-glx = []
-# Uses native Cocoa OpenGL libraries
-feature-opengl-cocoa = []
 # Chooses OpenGL 3.x / 4.x
-feature-opengl-desktop = []
+f-opengl-desktop = []
 # Chooses OpenGL ES 2.x / 3.x
-feature-opengl-es = []
+f-opengl-es = []
+
+
+[lib]
+
+
+[target.'cfg(all(feature="static-lib", not(feature="extern-c")))'.lib]
+crate-type = 'rlib'
+
+[target.'cfg(all(feature="static-lib", feature="extern-c"))'.lib]
+crate-type = 'staticlib'
+
+[taarget.'cfg(all(feature="dynamic-lib", not(feature="extern-c")))'.lib]
+crate-type = 'dylib'
+
+[target.'cfg(all(feature="dynamic-lib", feature="extern-c"))'.lib]
+crate-type = 'cdylib'
