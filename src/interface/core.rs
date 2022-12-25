@@ -8,7 +8,8 @@ pub use std::{
 };
 
 use crate::{
-    platform::WindowVisualParams
+    Result,
+    platform::WindowVisualParams,
 };
 
 use std::{
@@ -36,8 +37,8 @@ enum WindowFlag {
 }
 
 
-pub trait AppTrait {
-    fn new(name: String) -> Self;
+pub trait AppTrait : Sized {
+    fn new(name: String) -> Result<Self>;
 
     fn run<F>(&self, event_handler: F)
         where F: FnMut(&AnyEvent);
@@ -45,7 +46,7 @@ pub trait AppTrait {
 
 
 pub trait WindowTrait {
-    fn new(window_params: &WindowParams, surface_provider: Box<dyn SurfaceProvider>) -> Window;
+    fn new(window_params: &WindowParams, surface_provider: Box<dyn SurfaceProvider>) -> Result<Window>;
 
     fn set_title(&mut self, title: &str);
 
@@ -54,13 +55,11 @@ pub trait WindowTrait {
     fn get_surface_boxed(&self) -> &Box<dyn Any>;
 
 
-    fn with<SurfaceApiT>(window_params: &WindowParams, surface_params: &SurfaceApiT::Params) -> Window
+    fn with<SurfaceApiT>(window_params: &WindowParams, surface_params: &SurfaceApiT::Params) -> Result<Window>
         where SurfaceApiT : SurfaceApi
     {
-        Self::new(
-            window_params,
-            SurfaceApiT::new_boxed(surface_params)
-        )
+        SurfaceApiT::new_boxed(surface_params)
+            .and_then(|surface_provider| Self::new(window_params, surface_provider))
     }
 
 
@@ -86,25 +85,25 @@ pub trait SurfaceApi {
 
     fn new(
         params: &Self::Params
-    ) -> Self::Provider;
+    ) -> Result<Self::Provider>;
 
 
     fn new_boxed(
         params: &Self::Params
-    ) -> Box<dyn SurfaceProvider>
+    ) -> Result<Box<dyn SurfaceProvider>>
     {
-        Box::new(Self::new(params))
-            as Box<dyn SurfaceProvider>
+        Self::new(params)
+            .and_then(|provider| Ok(Box::new(provider) as Box<dyn SurfaceProvider>))
     }
 }
 
 
 pub trait SurfaceProvider {
-    fn new_visual_params(&self) -> WindowVisualParams;
+    fn new_visual_params(&self) -> Result<WindowVisualParams>;
 
     fn drop_visual_params(&self, surface_params: WindowVisualParams);
 
-    fn new_surface_boxed(&self, window: &Window) -> Box<dyn Any>;
+    fn new_surface_boxed(&self, window: &Window) -> Result<Box<dyn Any>>;
 
     fn drop_surface(&self, window: &Window, surface: Box<dyn Any>);
 }

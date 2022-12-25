@@ -1,4 +1,6 @@
-use crate::interface::core::*;
+use crate::{
+    *
+};
 
 
 pub struct Window {
@@ -16,8 +18,8 @@ pub struct WindowVisualParams {
 
 
 impl AppTrait for App {
-    fn new(_name: String) -> Self {
-        Self { }
+    fn new(_name: String) -> Result<Self> {
+        unimplemented!()
     }
 
     fn run<F>(&self, _event_handler: F)
@@ -32,9 +34,9 @@ impl WindowTrait for Window {
     fn new(
         _window_params: &WindowParams,
         _surface_provider: Box<dyn SurfaceProvider>
-    ) -> Window
+    ) -> Result<Window>
     {
-        Self { }
+        unimplemented!()
     }
 
     fn set_title(&mut self, _title: &str) {

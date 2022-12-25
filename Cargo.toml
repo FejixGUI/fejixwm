@@ -81,3 +81,14 @@ crate-type = 'dylib'
 
 [target.'cfg(all(feature="dynamic-lib", feature="extern-c"))'.lib]
 crate-type = 'cdylib'
+
+
+
+
+
+[target.'cfg(feature="platform-x11")'.dependencies]
+xcb = {version="^1.1.0", features=["xlib_xcb", "sync", "xkb"]}
+
+# TODO Check if this works
+[target.'cfg(all(feature="platform-x11", feature="graphics-opengl"))'.features]
+graphics-opengl = ["xcb/glx"]
