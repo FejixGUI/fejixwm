@@ -5,6 +5,9 @@ version = 3
 [[package]]
 name = "fejixwm"
 version = "0.0.1"
+dependencies = [
+ "fejixwm_platform_x11",
+]
 
 [[package]]
 name = "fejixwm_capi"
@@ -20,3 +23,6 @@ version = "0.0.1"
 [[package]]
 name = "fejixwm_platform_x11"
 version = "0.0.1"
+dependencies = [
+ "fejixwm_core",
+]

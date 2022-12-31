@@ -4,3 +4,9 @@ version = "0.0.1"
 description = "X11 platform implementation of Fejix WM"
 
 [lib]
+
+[features]
+graphics_rawpix = ["fejixwm_core/graphics_rawpix"]
+
+[dependencies]
+fejixwm_core = { path = "../fejixwm_core" }
