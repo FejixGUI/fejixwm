@@ -1,3 +1,10 @@
+/*!
+ * An app is a global singleton that represents a client of the operating system's graphical environment.
+ * 
+ * A window is a rectangular graphical surface that accepts user input and integrates into the operating system's
+ * graphical environment.
+ */
+
 pub use crate::events::*;
 pub use std::any::Any;
 
@@ -25,10 +32,12 @@ enum WindowFlag {
 }
 
 
-pub trait WmApi {
+/* pub trait WmApi {
     type App;
     type Window;
-    type WindowVisualParams;
+
+    /// Platform-dependent SurfaceController-specific data that is used internally for window creation
+    type WindowInternalVisualData;
 }
 
 
@@ -38,7 +47,10 @@ pub trait AppTrait : Sized {
     fn new(name: String) -> Result<Self>;
 
     fn run<F>(&self, event_handler: F)
-        where F: FnMut(&AnyEvent);
+        where F: FnMut(
+            Option<&<<Self as AppTrait>::WmApi as WmApi>::Window>,
+            &Event
+        );
 }
 
 
@@ -46,7 +58,7 @@ pub trait WindowTrait : Sized {
     type WmApi : WmApi;
 
     fn new(
-        window_params: &WindowParams,
+        window_params: &WindowParams<WmApiT = Self::WmApi>,
         surface_provider: Box<dyn SurfaceController<WmApi = Self::WmApi>>
     ) -> Result<Self>;
 
@@ -60,7 +72,7 @@ pub trait WindowTrait : Sized {
             .and_then(|surface_provider| Self::new(window_params, surface_provider))
     }
 
-    fn set_title(&mut self, title: &str) -> Result<()>;
+    fn set_title(&self, title: &str) -> Result<()>;
 
     fn get_size(&self) -> PixelSize;
 
@@ -75,8 +87,8 @@ pub trait WindowTrait : Sized {
 }
 
 
-pub struct WindowParams<'a> {
-    app: &'a Box<dyn Any>,
+pub struct WindowParams<'a, WmApiT : WmApi> {
+    app: &'a WmApiT::App,
     size: PixelSize,
     flags: WindowFlags,
 }
@@ -139,13 +151,13 @@ pub trait SurfaceApi {
 pub trait SurfaceController : 'static {
     type WmApi : WmApi;
 
-    fn new_visual_params(
+    fn new_window_visuals(
         &self
-    ) -> Result<<<Self as SurfaceController>::WmApi as WmApi>::WindowVisualParams>;
+    ) -> Result<<<Self as SurfaceController>::WmApi as WmApi>::WindowInternalVisualData>;
 
-    fn drop_visual_params(
+    fn drop_window_visuals(
         &self,
-        surface_params: <<Self as SurfaceController>::WmApi as WmApi>::WindowVisualParams
+        surface_params: <<Self as SurfaceController>::WmApi as WmApi>::WindowInternalVisualData
     );
 
     fn new_surface_boxed(
@@ -158,4 +170,31 @@ pub trait SurfaceController : 'static {
         window: &<<Self as SurfaceController>::WmApi as WmApi>::Window, 
         surface: Box<dyn Any>
     );
+} */
+
+
+/// Window Management API trait
+pub trait WmApiTrait {
+
+    type App : AppTrait;
+
+    type Window : WindowTrait;
+
+    /// Platform-dependent SurfaceController-specific data that is used internally for window creation
+    type WindowInternalVisualData;
+
+}
+
+
+pub trait AppTrait : Sized {
+
+    fn new(name: String) -> Result<Self>;
+
+}
+
+
+pub trait WindowTrait : Sized {
+
+
+    
 }

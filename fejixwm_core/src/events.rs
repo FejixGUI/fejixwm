@@ -1,7 +1,7 @@
 use crate::core::*;
 
 
-pub enum AnyEvent<'a, WmApiT : WmApi> {
+/* pub enum AnyEvent<'a> {
     WindowEvent {
         window: &'a WmApiT::Window,
         event: WindowEvent,
@@ -21,4 +21,9 @@ pub enum WindowEvent {
 
 pub enum GlobalEvent {
 
+} */
+
+
+pub enum Event {
+    
 }
