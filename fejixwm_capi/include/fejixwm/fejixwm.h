@@ -1,6 +1,6 @@
 #ifndef FEJIXWM_H_
 #define FEJIXWM_H_
 
-#error Unimplemented
+#error This is not implemented yet!
 
 #endif // FEJIXWM_H_

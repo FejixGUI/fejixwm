@@ -1,0 +1,6 @@
+[package]
+name = "fejixwm_platform_x11"
+version = "0.0.1"
+description = "X11 platform implementation of Fejix WM"
+
+[lib]

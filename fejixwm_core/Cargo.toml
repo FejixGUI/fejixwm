@@ -1,0 +1,13 @@
+[package]
+name = "fejixwm_core"
+version = "0.0.1"
+description = "Fejix WM platform-independent code"
+authors = ["Mark Lagodych <lgd.mrk@gmail.com>"]
+
+edition = "2021"
+
+
+[lib]
+
+
+[features]

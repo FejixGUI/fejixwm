@@ -1,0 +1,11 @@
+[package]
+name = "fejixwm_capi"
+version = "0.0.1"
+description = "C API wrapper for FejixWM"
+authors = ["Mark Lagodych <lgd.mrk@gmail.com>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+"fejixwm" = { path = "../fejixwm" }

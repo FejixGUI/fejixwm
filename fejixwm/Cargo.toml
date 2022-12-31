@@ -1,0 +1,5 @@
+[package]
+name = "fejixwm"
+version = "0.0.1"
+description = "Window management library"
+authors = ["Mark Lagodych <lgd.mrk@gmail.com>"]

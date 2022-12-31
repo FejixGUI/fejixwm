@@ -1,9 +1,9 @@
-use crate::interface::core::*;
+use crate::core::*;
 
 
-pub enum AnyEvent<'a> {
+pub enum AnyEvent<'a, WmApiT : WmApi> {
     WindowEvent {
-        window: &'a Window,
+        window: &'a WmApiT::Window,
         event: WindowEvent,
     },
 
