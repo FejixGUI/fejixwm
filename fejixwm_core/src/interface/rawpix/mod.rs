@@ -1,10 +1,11 @@
-use crate::interface::core::*;
+#![allow(non_camel_case_types)]
+
+use crate::*;
 
 
 /// All components are specified in little-endian order.
 /// Not all formats may be supported (typically, only a few are implemented by a platform).
 /// Size of a pixel of a specific format can be determined by [size_of_pixel].
-#[repr(u32)]
 pub enum PixelFormat {
     /// Red 8 bits, Green 8 bits, Blue 8 bits (packed)
     RGB_888,
@@ -31,7 +32,7 @@ pub enum PixelFormat {
 
 pub fn size_of_pixel(format: PixelFormat) -> usize {
     match format {
-        RGB_888 | BGR_888 => 3,
+        PixelFormat::RGB_888 | PixelFormat::BGR_888 => 3,
         _ => 4
     }
 }
@@ -40,6 +41,7 @@ pub fn size_of_pixel(format: PixelFormat) -> usize {
 pub struct SurfaceParams {
     format: PixelFormat
 }
+
 
 pub struct Surface {
     format: PixelFormat,

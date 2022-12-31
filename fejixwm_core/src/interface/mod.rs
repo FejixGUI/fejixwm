@@ -1,2 +1,2 @@
-#[cfg(feature = "graphics-rawpix")]
+#[cfg(grapgics_rawpix)]
 pub mod rawpix;
