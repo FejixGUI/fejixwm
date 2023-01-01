@@ -36,13 +36,9 @@ pub trait PlatformApiTrait {
 
     type App : AppTrait;
 
-    /// App container, a type that can create references to app.
-    /// May use any containers, e.g. `Arc<Mutex<App>>`, `Rc<RefCell<App>>`
-    type AppContainer : AppContainerTrait;
-
     /// App reference, any suitable container (e.g. `Mutex<App>`, `RefCell<App>`, `&'static App`).
     /// However, thread-safe ones are preferred.
-    type AppRef;
+    type AppRef : AppRefTrait;
 
     type Window : WindowTrait;
 
@@ -56,33 +52,32 @@ pub trait AppTrait : Sized {
 
     type PlatformApi : PlatformApiTrait;
 
-    fn new(
-        name: String
-    ) -> Result<Self>;
 
-    fn into_container(
-        &self
-    ) -> <<Self as AppTrait>::PlatformApi as PlatformApiTrait>::AppContainer;
+    fn new(name: String) -> Result<Self>;
 
-}
+    fn get_ref(&self) -> <<Self as AppTrait>::PlatformApi as PlatformApiTrait>::AppRef;
 
-
-pub trait AppContainerTrait {
-
-    type PlatformApi : PlatformApiTrait;
-
-    fn get_ref(
-        &self
-    ) -> <<Self as AppContainerTrait>::PlatformApi as PlatformApiTrait>::AppRef;
 
     fn run<EventHandlerT>(
         &self,
         event_handler: EventHandlerT
     )
-        where EventHandlerT : FnMut(
-            Option<&<<Self as AppContainerTrait>::PlatformApi as PlatformApiTrait>::Window>,
+    where
+        EventHandlerT : FnMut(
+            Option<&<<Self as AppTrait>::PlatformApi as PlatformApiTrait>::Window>,
             Event
         );
+
+}
+
+
+pub trait AppRefTrait : Sized {
+
+    type PlatformApi : PlatformApiTrait;
+
+    fn get_ref(&self) -> Self;
+
+    fn stop(&self);
 
 }
 
@@ -92,7 +87,7 @@ pub trait WindowTrait : Sized {
     type PlatformApi : PlatformApiTrait;
 
     /// Internal constructor used inside surface constructors
-    fn new(
+    fn new_internal(
         app: <<Self as WindowTrait>::PlatformApi as PlatformApiTrait>::AppRef,
         params: WindowParams,
         visual_data: <<Self as WindowTrait>::PlatformApi as PlatformApiTrait>::WindowInternalVisualData

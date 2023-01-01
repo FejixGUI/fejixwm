@@ -5,6 +5,7 @@ description = "Window management library"
 authors = ["Mark Lagodych <lgd.mrk@gmail.com>"]
 
 [dependencies]
+fejixwm_core = { path = "../fejixwm_core" }
 fejixwm_platform_x11 = { path = "../fejixwm_platform_x11", optional = true }
 
 [features]

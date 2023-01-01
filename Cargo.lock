@@ -6,6 +6,7 @@ version = 3
 name = "fejixwm"
 version = "0.0.1"
 dependencies = [
+ "fejixwm_core",
  "fejixwm_platform_x11",
 ]
 
