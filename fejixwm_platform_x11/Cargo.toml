@@ -9,4 +9,6 @@ description = "X11 platform implementation of Fejix WM"
 graphics_rawpix = ["fejixwm_core/graphics_rawpix"]
 
 [dependencies]
-fejixwm_core = { path = "../fejixwm_core" }
+fejixwm_core = { path = "../fejixwm_core", features = ["window_manip"] }
+
+xcb = { version = "^1.2", features = ["sync", "xkb"] }

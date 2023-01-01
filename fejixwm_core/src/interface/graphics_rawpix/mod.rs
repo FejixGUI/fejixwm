@@ -43,7 +43,7 @@ pub struct SurfaceParams {
 }
 
 
-pub struct Surface {
+pub struct Pixmap {
     format: PixelFormat,
 
     /// Size of row in bytes (including padding bytes).
@@ -57,4 +57,11 @@ pub struct Surface {
     /// Pixel data. Contains `height * (width * size_of_pixel(format) + padding)` bytes.
     /// The length of this vector MUST NOT be modified
     pub pixels: Vec<u8>
+}
+
+
+pub trait Surface : SurfaceTrait {
+
+    fn get_pixmap<'a>(&'a mut self) -> &'a mut Pixmap;
+
 }

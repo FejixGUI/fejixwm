@@ -9,8 +9,9 @@ edition = "2021"
 
 [lib]
 
-
 [features]
+default = ["window_manip"]
+
 graphics_rawpix = []
 graphics_opengl = []
 graphics_vulkan = []
@@ -18,3 +19,5 @@ graphics_directx = []
 graphics_metal = []
 graphics_webgl = []
 graphics_webcanvas = []
+
+window_manip = []

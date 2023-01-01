@@ -1,9 +1,7 @@
 use crate::{
     Result,
-    events::Event,
+    events::EventHandler,
 };
-
-use std::ops::FnMut;
 
 
 pub struct PixelSize {
@@ -21,26 +19,33 @@ type WindowFlags = u32;
 
 #[repr(u32)]
 enum WindowFlag {
-    SmoothRedraw    = 0b0000_0001,
-    TextInput       = 0b0000_0010,
+    Resizable       = 0b0000_0001,
+    SmoothRedraw    = 0b0000_0010,
+    TextInput       = 0b0000_0100,
 }
 
 
+/// Window numeric identifier defined by the user that is passed to the event handler
+pub type WindowId = u32;
+
+
 pub struct WindowParams {
+    /// Window numeric identifier defined by the user that is passed to the event handler
+    id: WindowId,
+    flags: WindowFlags,
     size: PixelSize,
-    flags: WindowFlags
 }
 
 
 pub trait PlatformApiTrait {
 
-    type App : AppTrait;
+    type App : AppTrait<PlatformApi = Self>;
 
     /// App reference, any suitable container (e.g. `Mutex<App>`, `RefCell<App>`, `&'static App`).
     /// However, thread-safe ones are preferred.
-    type AppRef : AppRefTrait;
+    type AppRef : AppRefTrait<PlatformApi = Self>;
 
-    type Window : WindowTrait;
+    type Window : WindowTrait<PlatformApi = Self>;
 
     /// Platform-dependent surface-specific data that is used internally for window creation
     type WindowInternalVisualData;
@@ -52,21 +57,12 @@ pub trait AppTrait : Sized {
 
     type PlatformApi : PlatformApiTrait;
 
-
     fn new(name: String) -> Result<Self>;
 
-    fn get_ref(&self) -> <<Self as AppTrait>::PlatformApi as PlatformApiTrait>::AppRef;
+    fn get_ref(&self) -> <Self::PlatformApi as PlatformApiTrait>::AppRef;
 
-
-    fn run<EventHandlerT>(
-        &self,
-        event_handler: EventHandlerT
-    )
-    where
-        EventHandlerT : FnMut(
-            Option<&<<Self as AppTrait>::PlatformApi as PlatformApiTrait>::Window>,
-            Event
-        );
+    /// Runs event loop while the event handler does not return [EventOutcome::Exit]
+    fn run(&self, event_handler: EventHandler);
 
 }
 
@@ -77,8 +73,6 @@ pub trait AppRefTrait : Sized {
 
     fn get_ref(&self) -> Self;
 
-    fn stop(&self);
-
 }
 
 
@@ -86,41 +80,44 @@ pub trait WindowTrait : Sized {
 
     type PlatformApi : PlatformApiTrait;
 
+
     /// Internal constructor used inside surface constructors
     fn new_internal(
-        app: <<Self as WindowTrait>::PlatformApi as PlatformApiTrait>::AppRef,
+        app: <Self::PlatformApi as PlatformApiTrait>::AppRef,
         params: WindowParams,
-        visual_data: <<Self as WindowTrait>::PlatformApi as PlatformApiTrait>::WindowInternalVisualData
+        visual_data: <Self::PlatformApi as PlatformApiTrait>::WindowInternalVisualData
     ) -> Result<Self>;
-    
-}
 
 
-/// Structs that implement this trait can be made into trait objects (because `Sized` is not required).
-pub trait SurfaceBasicTrait {
+    fn get_app(&self) -> <Self::PlatformApi as PlatformApiTrait>::AppRef;
 
-    type PlatformApi : PlatformApiTrait;
-
-    fn get_window(
-        &self
-    ) -> <<Self as SurfaceBasicTrait>::PlatformApi as PlatformApiTrait>::Window;
+    fn get_id(&self) -> WindowId;
 
 }
 
 
-pub trait SurfaceApiTrait : Sized {
+/// Structs that implement this trait can be made into trait objects because [Sized] is not required.
+pub trait SurfaceGenericTrait {
 
     type PlatformApi : PlatformApiTrait;
-    
+
+    fn get_window(&self) -> <Self::PlatformApi as PlatformApiTrait>::Window;
+
+    fn get_size(&self) -> PixelSize;
+
+    fn resize(&self, size: PixelSize) -> Result<()>;
+
+}
+
+
+pub trait SurfaceTrait : SurfaceGenericTrait + Sized {
+
     type SurfaceParams;
 
     fn new(
-        app: <<Self as SurfaceApiTrait>::PlatformApi as PlatformApiTrait>::AppRef,
+        app: <Self::PlatformApi as PlatformApiTrait>::AppRef,
         window_params: WindowParams,
         surface_params: Self::SurfaceParams
     ) -> Result<Self>;
 
 }
-
-
-pub trait SurfaceTrait : SurfaceBasicTrait + SurfaceApiTrait { }

@@ -14,3 +14,15 @@ pub enum Error {
     /// May be caused by memory allocation failures, mutex creation failures etc.
     InternalLogicFailed,
 }
+
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Unsupported => write!(f, "Feature is unsupported"),
+            Self::PlatformApiFailed => write!(f, "Platform API failed"),
+            Self::GraphicsApiFailed => write!(f, "Graphics API failed"),
+            Self::InternalLogicFailed => write!(f, "Internal logic failed"),
+        }
+    }
+}
