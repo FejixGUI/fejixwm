@@ -2,6 +2,7 @@
 
 use crate::core;
 
+use core::PixelSize;
 use std::{
     rc::Rc,
     cell::RefCell, collections::HashMap,
@@ -19,6 +20,8 @@ pub struct AppRef {
 
 pub struct Window {
     pub(crate) app: AppRef,
+
+    pub(crate) size: PixelSize,
 
     pub(crate) id: core::WindowId,
 

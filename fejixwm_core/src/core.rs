@@ -1,9 +1,12 @@
+use std::fmt::Display;
+
 use crate::{
     Result,
     events::EventHandler,
 };
 
 
+#[derive(Clone)]
 pub struct PixelSize {
     pub width: u32,
     pub height: u32
@@ -12,6 +15,12 @@ pub struct PixelSize {
 impl PixelSize {
     pub fn new(width: u32, height: u32) -> Self {
         Self { width, height }
+    }
+}
+
+impl Display for PixelSize {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}x{}", self.width, self.height)
     }
 }
 
@@ -29,6 +38,7 @@ enum WindowFlag {
 pub type WindowId = u32;
 
 
+#[derive(Clone)]
 pub struct WindowParams {
     /// Window numeric identifier defined by the user that is passed to the event handler
     id: WindowId,
@@ -96,6 +106,8 @@ pub mod traits {
         fn get_app(&self) -> <Self::PlatformApi as PlatformApiTrait>::AppRef;
 
         fn get_id(&self) -> WindowId;
+
+        fn get_size(&self) -> PixelSize;
 
     }
 

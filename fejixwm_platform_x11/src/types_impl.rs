@@ -74,6 +74,10 @@ impl WindowTrait for Window {
         self.id
     }
 
+    fn get_size(&self) -> core::PixelSize {
+        self.size.clone()
+    }
+
 }
 
 
