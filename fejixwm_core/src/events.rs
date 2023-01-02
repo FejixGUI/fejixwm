@@ -30,7 +30,7 @@ pub enum EventOutcome {
 }
 
 
-pub type EventHandler = dyn FnMut(AnyEvent) -> EventOutcome;
+pub type EventHandler<'a> = &'a dyn FnMut(AnyEvent) -> EventOutcome;
 
 
 impl std::fmt::Display for AnyEvent {
