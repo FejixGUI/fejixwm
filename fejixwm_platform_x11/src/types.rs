@@ -2,26 +2,25 @@
 
 use crate::core;
 
-use core::PixelSize;
 use std::{
-    rc::Rc,
-    cell::RefCell, collections::HashMap,
+    sync::{Arc, Mutex},
+    collections::HashMap,
 };
 
 
 pub struct App {
-    pub(crate) app: Rc<RefCell<PlatformApp>>,
+    pub(crate) app: Arc<PlatformApp>,
 }
 
 pub struct AppRef {
-    pub(crate) app: Rc<RefCell<PlatformApp>>,
+    pub(crate) app: Arc<PlatformApp>,
 }
 
 
 pub struct Window {
     pub(crate) app: AppRef,
 
-    pub(crate) size: PixelSize,
+    pub(crate) size: core::PixelSize,
 
     pub(crate) id: core::WindowId,
 
@@ -36,14 +35,12 @@ pub struct WindowInternalVisualData {
     pub(crate) colormap: xcb::x::Colormap,
 }
 
-pub struct PlatformApp {
+pub(crate) struct PlatformApp {
     pub(crate) name: String,
-    pub(crate) window_ids: HashMap<core::WindowId, xcb::x::Window>,
+    pub(crate) window_ids: Mutex<HashMap<core::WindowId, xcb::x::Window>>,
 
-    pub(crate) xdisplay: x11::xlib::Display,
-    pub(crate) xdefault_screen: u32,
-
-    pub(crate) conection: xcb::Connection,
+    pub(crate) connection: xcb::Connection,
+    pub(crate) default_screen: i32,
 
     pub(crate) atoms: Atoms,
     pub(crate) input_method: x11::xlib::XIM

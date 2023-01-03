@@ -1,0 +1,6 @@
+[package]
+name = "devtest"
+version = "1.0.0"
+
+[dependencies]
+fejixwm = { path = "../fejixwm", features = ["platform_x11"] }

@@ -6,10 +6,10 @@ pub enum Error {
     Unsupported,
 
     /// Means that the operating system's graphical environment has behaved in an unexpected way
-    PlatformApiFailed,
+    PlatformApiFailed(&'static str),
     
     /// May be caused when a certain graphics API is not supported
-    GraphicsApiFailed,
+    GraphicsApiFailed(&'static str),
 
     /// May be caused by memory allocation failures, mutex creation failures etc.
     InternalLogicFailed,
@@ -19,10 +19,10 @@ pub enum Error {
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Unsupported => write!(f, "Feature is unsupported"),
-            Self::PlatformApiFailed => write!(f, "Platform API failed"),
-            Self::GraphicsApiFailed => write!(f, "Graphics API failed"),
-            Self::InternalLogicFailed => write!(f, "Internal logic failed"),
+            Self::Unsupported => write!(f, "feature is unsupported"),
+            Self::PlatformApiFailed(msg) => write!(f, "platform API failed ({msg})"),
+            Self::GraphicsApiFailed(msg) => write!(f, "graphics API failed ({msg})"),
+            Self::InternalLogicFailed => write!(f, "internal logic failed"),
         }
     }
 }

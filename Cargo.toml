@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    'devtest',
     'fejixwm',
     'fejixwm_core',
     'fejixwm_platform_x11',

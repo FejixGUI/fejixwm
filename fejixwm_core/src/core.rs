@@ -81,11 +81,9 @@ pub mod traits {
     }
 
 
-    pub trait AppRefTrait : Sized {
+    pub trait AppRefTrait : Sized + Clone {
 
         type PlatformApi : PlatformApiTrait;
-
-        fn get_ref(&self) -> Self;
 
     }
 
@@ -107,7 +105,7 @@ pub mod traits {
 
         fn get_id(&self) -> WindowId;
 
-        fn get_size(&self) -> PixelSize;
+        fn get_size(&self) -> Result<PixelSize>;
 
     }
 

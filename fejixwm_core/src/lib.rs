@@ -34,5 +34,7 @@ pub mod errors;
 pub mod events;
 pub mod interface;
 
-pub use self::core::*;
-pub use self::errors::{Result, Error};
+pub use self::{
+    core::{*, traits::*},
+    errors::{Result, Error}
+};

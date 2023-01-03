@@ -1,10 +1,13 @@
-use crate::core;
-use crate::core::traits::*;
+use crate::core::{self, Error, Result, traits::*};
 use crate::types::*;
 
+use x11::xlib;
+
 use std::{
-    rc::Rc,
+    collections::HashMap,
+    sync::{Arc, Mutex},
     cell::RefCell,
+    ptr::{null, null_mut}
 };
 
 
@@ -26,12 +29,12 @@ impl AppTrait for App {
 
     fn new(name: String) -> core::Result<Self> {
         Ok(Self {
-            app: Rc::new(RefCell::new(PlatformApp::new(name)?))
+            app: Arc::new(PlatformApp::new(name)?)
         })
     }
 
     fn get_ref(&self) -> AppRef {
-        AppRef { app: Rc::clone(&self.app) }
+        AppRef { app: Arc::clone(&self.app) }
     }
 
     fn run(&self, event_handler: core::events::EventHandler) {
@@ -46,12 +49,16 @@ impl AppRefTrait for AppRef {
 
     type PlatformApi = PlatformApi;
 
-    fn get_ref(&self) -> Self {
-        Self { app: Rc::clone(&self.app) }
+}
+
+
+impl Clone for AppRef {
+
+    fn clone(&self) -> Self {
+        Self { app: Arc::clone(&self.app) }
     }
 
 }
-
 
 
 impl WindowTrait for Window {
@@ -67,15 +74,15 @@ impl WindowTrait for Window {
     }
 
     fn get_app(&self) -> AppRef {
-        self.app.get_ref()
+        self.app.clone()
     }
 
     fn get_id(&self) -> core::WindowId {
         self.id
     }
 
-    fn get_size(&self) -> core::PixelSize {
-        self.size.clone()
+    fn get_size(&self) -> core::Result<core::PixelSize> {
+        Ok(self.size.clone())
     }
 
 }
@@ -84,6 +91,51 @@ impl WindowTrait for Window {
 
 impl PlatformApp {
     pub fn new(name: String) -> core::Result<Self> {
-        unimplemented!()
+        let (connection, default_screen) = Self::connect()?;
+        let input_method = Self::create_input_method(&connection)?;
+        let atoms = Atoms::intern_all(&connection)
+            .or_else(|_| Err(Error::PlatformApiFailed("cannot get X atoms")))?;
+
+        Ok(Self {
+            name,
+            window_ids: Mutex::new(HashMap::new()),
+            connection,
+            default_screen,
+            atoms,
+            input_method
+        })
+    }
+
+
+    fn connect() -> Result<(xcb::Connection, i32)> {
+        xcb::Connection::connect_with_xlib_display()
+            .or_else(|_| Err(Error::PlatformApiFailed("cannot connect to Xorg")))
+    }
+
+
+    fn create_input_method(connection: &xcb::Connection) -> Result<xlib::XIM> {
+        let im = unsafe {
+            xlib::XOpenIM(connection.get_raw_dpy(), null_mut(), null_mut(), null_mut())
+        };
+        
+        if im.is_null() {
+            return Err(Error::PlatformApiFailed("cannot create input method"));
+        }
+
+        return Ok(im)
+    }
+
+
+    fn detroy_input_method(&self) {
+        unsafe {
+            xlib::XCloseIM(self.input_method);
+        }
+    }
+}
+
+
+impl Drop for PlatformApp {
+    fn drop(&mut self) {
+        self.detroy_input_method();
     }
 }
