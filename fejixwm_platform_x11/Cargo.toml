@@ -6,11 +6,11 @@ description = "X11 platform implementation of Fejix WM"
 [lib]
 
 [features]
-graphics_rawpix = ["fejixwm_core/graphics_rawpix"]
-graphics_opengl = ["fejixwm_core/graphics_opengl", "xcb/glx"]
+graphics_rawpix = []
+graphics_opengl = ["xcb/glx"]
 
 [dependencies]
-fejixwm_core = { path = "../fejixwm_core", features = ["window_manip"] }
+fejixwm_core = { path = "../fejixwm_core" }
 
 xcb = { version = "~1.2", features = ["xlib_xcb", "sync"] }
 x11 = { version = "~2.20", features = ["xlib"] }

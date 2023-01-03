@@ -113,7 +113,7 @@ pub mod traits {
 
 
     /// Structs that implement this trait can be made into trait objects because [Sized] is not required.
-    pub trait SurfaceGenericTrait {
+    pub trait AbstractSurfaceTrait {
 
         type PlatformApi : PlatformApiTrait;
 
@@ -126,7 +126,7 @@ pub mod traits {
     }
 
 
-    pub trait SurfaceTrait : SurfaceGenericTrait + Sized {
+    pub trait SurfaceTrait : AbstractSurfaceTrait + Sized {
 
         type SurfaceParams;
 

@@ -20,7 +20,7 @@ pub struct AppRef {
 pub struct Window {
     pub(crate) app: AppRef,
 
-    pub(crate) size: core::PixelSize,
+    pub(crate) size: Mutex<core::PixelSize>,
 
     pub(crate) id: core::WindowId,
 
@@ -28,7 +28,8 @@ pub struct Window {
 
     /// Must be accessed only inside app.run()
     pub(crate) smooth_redraw_driver: Option<Mutex<WindowSmoothRedrawDriver>>,
-    pub(crate) input_driver: Option<WindowInputDriver>,
+    /// Must be accessed only inside app.run()
+    pub(crate) input_driver: Option<Mutex<WindowInputDriver>>,
 }
 
 pub struct WindowInternalVisualData {

@@ -81,7 +81,7 @@ impl WindowTrait for Window {
     }
 
     fn get_size(&self) -> core::PixelSize {
-        self.size.clone()
+        self.size.lock().unwrap().clone()
     }
 
 }
@@ -180,7 +180,7 @@ impl Window {
         let mut myself = Self {
             app,
             id: params.id,
-            size: params.size.clone(),
+            size: Mutex::new(params.size.clone()),
             xid,
             smooth_redraw_driver: None,
             input_driver: None
@@ -405,5 +405,33 @@ impl WindowSmoothRedrawDriver {
 impl Drop for WindowSmoothRedrawDriver {
     fn drop(&mut self) {
         self.destroy_counter().unwrap();
+    }
+}
+
+
+
+impl WindowInputDriver {
+    pub fn new(app: &AppRef) -> Result<Self> {
+        let xic = unsafe { xlib::XCreateIC(app.app.input_method) };
+        if xic.is_null() {
+            return Err(Error::PlatformApiFailed("cannot create input context"));
+        }
+
+        Ok(Self {
+            input_context: xic,
+            input: Vec::with_capacity(16),
+            input_finished: false
+        })
+    }
+
+
+    pub fn handle_key_event(&self, event: &xcb::x::KeyPressEvent) -> Result<()> {
+        // TODO
+        // let event = xlib::XKeyPressedEvent {
+        //     type_ = xlib::KeyPress,
+        //     display = self.
+        // }
+
+        Ok(())
     }
 }
