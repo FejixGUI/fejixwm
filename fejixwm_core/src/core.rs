@@ -1,9 +1,11 @@
-use std::fmt::Display;
-
 use crate::{
     Result,
     events::EventHandler,
 };
+
+use bitflags::bitflags;
+
+use std::fmt::Display;
 
 
 #[derive(Clone)]
@@ -24,13 +26,13 @@ impl Display for PixelSize {
     }
 }
 
-type WindowFlags = u32;
 
-#[repr(u32)]
-enum WindowFlag {
-    Resizable       = 0b0000_0001,
-    SmoothRedraw    = 0b0000_0010,
-    TextInput       = 0b0000_0100,
+bitflags! {
+    pub struct WindowFlags : u32 {
+        const RESIZABLE       = 0b0000_0001;
+        const SMOOTH_REDRAW    = 0b0000_0010;
+        const TEXTINPUT       = 0b0000_0100;
+    }
 }
 
 
@@ -40,10 +42,10 @@ pub type WindowId = u32;
 
 #[derive(Clone)]
 pub struct WindowParams {
-    /// Window numeric identifier defined by the user that is passed to the event handler
-    id: WindowId,
-    flags: WindowFlags,
-    size: PixelSize,
+    /// Numeric window identifier defined by the user that is passed to the event handler
+    pub id: WindowId,
+    pub flags: WindowFlags,
+    pub size: PixelSize,
 }
 
 
@@ -105,7 +107,7 @@ pub mod traits {
 
         fn get_id(&self) -> WindowId;
 
-        fn get_size(&self) -> Result<PixelSize>;
+        fn get_size(&self) -> PixelSize;
 
     }
 

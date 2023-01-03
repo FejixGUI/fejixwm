@@ -26,7 +26,8 @@ pub struct Window {
 
     pub(crate) xid: xcb::x::Window,
 
-    pub(crate) smooth_redraw_driver: Option<WindowSmoothRedrawDriver>,
+    /// Must be accessed only inside app.run()
+    pub(crate) smooth_redraw_driver: Option<Mutex<WindowSmoothRedrawDriver>>,
     pub(crate) input_driver: Option<WindowInputDriver>,
 }
 
@@ -37,16 +38,17 @@ pub struct WindowInternalVisualData {
 
 pub(crate) struct PlatformApp {
     pub(crate) name: String,
-    pub(crate) window_ids: Mutex<HashMap<core::WindowId, xcb::x::Window>>,
+    pub(crate) window_ids: Mutex<HashMap<xcb::x::Window, core::WindowId>>,
 
     pub(crate) connection: xcb::Connection,
-    pub(crate) default_screen: i32,
+    pub(crate) default_screen_number: i32,
 
     pub(crate) atoms: Atoms,
     pub(crate) input_method: x11::xlib::XIM
 }
 
 pub(crate) struct WindowSmoothRedrawDriver {
+    pub(crate) app: AppRef,
     pub(crate) sync_counter: xcb::sync::Counter,
     pub(crate) sync_value: xcb::sync::Int64,
 }
@@ -60,13 +62,13 @@ pub(crate) struct WindowInputDriver {
 
 xcb::atoms_struct! {
     pub(crate) struct Atoms {
-        WM_PROTOCOLS => b"WM_PROTOCOLS",
-        WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
+        pub WM_PROTOCOLS => b"WM_PROTOCOLS",
+        pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
 
-        _NET_WM_NAME => b"_NET_WM_NAME",
-        UTF8_STRING => b"UTF8_STRING",
+        pub _NET_WM_NAME => b"_NET_WM_NAME",
+        pub UTF8_STRING => b"UTF8_STRING",
 
-        _NET_WM_SYNC_REQUEST => b"_NET_WM_SYNC_REQUEST",
-        _NET_WM_SYNC_REQUEST_COUNTER => b"_NET_WM_SYNC_REQUEST_COUNTER",
+        pub _NET_WM_SYNC_REQUEST => b"_NET_WM_SYNC_REQUEST",
+        pub _NET_WM_SYNC_REQUEST_COUNTER => b"_NET_WM_SYNC_REQUEST_COUNTER",
     }
 }

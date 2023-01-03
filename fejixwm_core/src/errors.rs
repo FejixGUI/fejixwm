@@ -1,6 +1,7 @@
 pub type Result<T> = std::result::Result<T, Error>;
 
 
+#[derive(Debug)]
 pub enum Error {
     /// Means that a certain feature is not provided or not implemented on the platform
     Unsupported,

@@ -12,5 +12,5 @@ graphics_opengl = ["fejixwm_core/graphics_opengl", "xcb/glx"]
 [dependencies]
 fejixwm_core = { path = "../fejixwm_core", features = ["window_manip"] }
 
-xcb = { version = "^1.2", features = ["xlib_xcb", "sync"] }
-x11 = { version = "^2.19", features = ["xlib"] }
+xcb = { version = "~1.2", features = ["xlib_xcb", "sync"] }
+x11 = { version = "~2.20", features = ["xlib"] }

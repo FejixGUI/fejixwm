@@ -21,3 +21,6 @@ graphics_webgl = []
 graphics_webcanvas = []
 
 window_manip = []
+
+[dependencies]
+bitflags = { version = "~1.3" }
