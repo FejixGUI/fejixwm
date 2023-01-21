@@ -1,4 +1,4 @@
-pub mod graphics_rawpix;
-pub mod graphics_opengl;
+pub mod rawpix;
 
-pub mod window_manip;
+// pub mod opengl;
+// pub mod window_manip;

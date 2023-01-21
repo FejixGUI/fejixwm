@@ -1,95 +1,17 @@
-use crate::core::{self, Error, Result, traits::*};
+use crate::core::*;
 use crate::types::*;
 
 use x11::xlib;
 
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard},
     ptr::{null, null_mut}
 };
 
 
-pub struct PlatformApi;
 
-
-impl PlatformApiTrait for PlatformApi {
-    type App = App;
-    type AppRef = AppRef;
-    type Window = Window;
-    type WindowInternalVisualData = WindowInternalVisualData;
-}
-
-
-
-impl AppTrait for App {
-
-    type PlatformApi = PlatformApi;
-
-    fn new(name: String) -> core::Result<Self> {
-        Ok(Self {
-            app: Arc::new(PlatformApp::new(name)?)
-        })
-    }
-
-    fn get_ref(&self) -> AppRef {
-        AppRef { app: Arc::clone(&self.app) }
-    }
-
-    fn run(&self, event_handler: core::events::EventHandler) {
-        todo!()
-    }
-
-}
-
-
-
-impl AppRefTrait for AppRef {
-
-    type PlatformApi = PlatformApi;
-
-}
-
-
-impl Clone for AppRef {
-
-    fn clone(&self) -> Self {
-        Self { app: Arc::clone(&self.app) }
-    }
-
-}
-
-
-impl WindowTrait for Window {
-
-    type PlatformApi = PlatformApi;
-
-    fn new_internal(
-        app: AppRef,
-        params: core::WindowParams,
-        visual_data: WindowInternalVisualData
-    ) -> core::Result<Self> {
-        Self::new(app, params, visual_data)
-    }
-
-    fn get_app(&self) -> AppRef {
-        self.app.clone()
-    }
-
-    fn get_id(&self) -> core::WindowId {
-        self.id
-    }
-
-    fn get_size(&self) -> core::PixelSize {
-        self.size.lock().unwrap().clone()
-    }
-
-}
-
-
-
-impl PlatformApp {
-    pub(crate) fn new(name: String) -> core::Result<Self> {
+impl ShellClientTrait for ShellClient {
+    fn new(info: &ShellClientInfo) -> Result<Self> {
         let (connection, default_screen_number) = Self::connect()?;
         let input_method = Self::create_input_method(&connection)?;
         let atoms = Atoms::intern_all(&connection)
@@ -169,7 +91,7 @@ impl Drop for PlatformApp {
 impl Window {
     fn new(
         app: AppRef,
-        params: core::WindowParams,
+        params: core::WindowInfo,
         visual_data: WindowInternalVisualData
     ) -> core::Result<Self> {
 
@@ -205,7 +127,7 @@ impl Window {
 
     fn create_window(
         app: &AppRef,
-        params: &core::WindowParams,
+        params: &core::WindowInfo,
         visual_data: WindowInternalVisualData
     ) -> Result<xcb::x::Window> {
         let xid = app.app.connection.generate_id();
@@ -255,7 +177,7 @@ impl Window {
     }
 
 
-    fn init_drivers(&mut self, params: &core::WindowParams) -> Result<()> {
+    fn init_drivers(&mut self, params: &core::WindowInfo) -> Result<()> {
         if params.flags.contains(core::WindowFlags::SMOOTH_REDRAW) {
             self.smooth_redraw_driver = Some(Mutex::new(WindowSmoothRedrawDriver::new(&self.app, self.xid)?));
         }
@@ -277,7 +199,7 @@ impl Window {
     fn set_window_protocols(
         app: &AppRef,
         window: xcb::x::Window,
-        params: &core::WindowParams
+        params: &core::WindowInfo
     ) -> Result<()> {
 
         let mut protocols = vec![

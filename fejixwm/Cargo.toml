@@ -9,10 +9,9 @@ fejixwm_core = { path = "../fejixwm_core" }
 fejixwm_platform_x11 = { path = "../fejixwm_platform_x11", optional = true }
 
 [features]
-# Indicates that any platform was selected
-_platform_impl = []
+_platform_selected = []
 
-platform_x11 = ["_platform_impl", "fejixwm_platform_x11"]
+platform_x11 = ["_platform_selected", "fejixwm_platform_x11"]
 
 graphics_rawpix = [
     "fejixwm_platform_x11?/graphics_rawpix",

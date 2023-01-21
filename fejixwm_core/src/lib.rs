@@ -1,29 +1,37 @@
 /*!
 ## Purpose
 
-This crate defines global platform-independent type traits and their relationships.
-All platform implementation crates have to implement the traits.
-
+This crate contains platform-independent code of FejixWM.
 
 ## Definitions
 
-**Shell** is an operating system's graphical environment. Typical examples of shells are Microsoft Windows Shell, GNOME Shell, KDE Plasma.
+### General
 
-**Platform** is a shell API.
+* **Shell** - an operating system's graphical environment.
+  Typical examples of shells are Microsoft Windows Shell, GNOME Shell, KDE Plasma.
 
-The following definitions are parts of every platform, thus they are platform-specific:
+* **Surface** - a rectangular pixel array displayed on screen by a shell.
+  Surfaces are always managed by shells and are rarely directly accessible to programs.
 
-**App** is a global singleton that represents a shell client.
+* **Window** - an object provided by a shell to a program giving indirect access to a surface, its decorations
+  and additional functionality like receiving user input (keyboard presses, mouse movement etc.).
 
-**Window** is a rectangular graphical surface displayed by the shell. Windows interoperate with the shell in various 
-different ways. For example, windows can accept user input like keyboard presses and mouse button clicks.
+* **Platform** - a shell API, e.g. Windows API, Cocoa, X11, Wayland.
 
-**Surface** is an object which a program can use to display graphics within a window.
+* **Graphics API** - an API for displaying graphics on a window's surface, e.g. OpenGL or Vulkan.
+  FejixWM provides a software rendering API called Rawpix.
 
-**Graphics API** is a concrete protocol for displaying graphics on a surface. Even though there are cross-platform
-graphics APIs (indicating that they are supposed to be platform-independent), there are numerous platform-specific 
-(platform-dependent) nuances about the APIs. Therefore, every platform should provide a separate implementation of such
-APIs.
+### Specific to FejixWM
+
+* **Window manager** (WM) - a global singleton object that represents a shell client.
+  WM owns windows and manages them.
+
+* **Window identifier** - an arbitrary number that identifies a WM's window.
+  The framework is reluctant to expose raw window objects.
+
+* **Canvas** - an object used to display graphics, e.g. OpenGL context or Vulkan surface.
+  Every window must have at most one canvas.
+
 */
 
 #![allow(dead_code)]
@@ -35,6 +43,6 @@ pub mod events;
 pub mod interface;
 
 pub use self::{
-    core::{*, traits::*},
+    core::*,
     errors::{Result, Error}
 };

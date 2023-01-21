@@ -7,7 +7,7 @@ use std::{
 
 
 pub enum AnyEvent {
-    GlobalEvent(GlobalEvent),
+    GlobalEvent { event: GlobalEvent },
     WindowEvent { window_id: WindowId, event: WindowEvent }
 }
 
@@ -39,7 +39,7 @@ impl std::fmt::Display for AnyEvent {
             Self::WindowEvent { window_id, event } => 
                 write!(f, "window id: {window_id}, event: {event}"),
 
-            Self::GlobalEvent(event) =>
+            Self::GlobalEvent { event } =>
                 write!(f, "global event: {event}"),
         }
     }
@@ -50,7 +50,7 @@ impl std::fmt::Display for WindowEvent {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Close => write!(f, "closed"),
-            Self::Resize(size) => write!(f, "resized to ({} : {})", size.width, size.height),
+            Self::Resize(size) => write!(f, "resized to {size}"),
             Self::UserEvent { .. } => write!(f, "user event")
         }
     }

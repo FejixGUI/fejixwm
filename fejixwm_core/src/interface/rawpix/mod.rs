@@ -38,12 +38,12 @@ pub fn size_of_pixel(format: PixelFormat) -> usize {
 }
 
 
-pub struct SurfaceParams {
+pub struct CanvasInfo {
     format: PixelFormat
 }
 
 
-pub struct Pixmap {
+pub struct Canvas {
     format: PixelFormat,
 
     /// Size of row in bytes (including padding bytes).
@@ -57,11 +57,4 @@ pub struct Pixmap {
     /// Pixel data. Contains `height * (width * size_of_pixel(format) + padding)` bytes.
     /// The length of this vector MUST NOT be modified
     pub pixels: Vec<u8>
-}
-
-
-pub trait Surface : SurfaceTrait {
-
-    fn get_pixmap<'a>(&'a mut self) -> &'a mut Pixmap;
-
 }
