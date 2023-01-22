@@ -90,7 +90,7 @@ impl WindowManager {
     }
 
 
-    fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
+    fn create_window(&mut self, info: &WindowInfo) -> Result<()> {
         let visual_info: WindowVisualInfo = self.create_visual_info(info)?;
         let wid = info.id;
 
@@ -403,8 +403,23 @@ impl WindowTextInputDriver {
 }
 
 
+impl WindowManagerTrait for WindowManager {
+    fn new(info: &WindowManagerInfo) -> Result<Self> {
+        Self::new(info)
+    }
+
+    fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
+        self.create_window(info)
+    }
+
+    fn run<EventHandlerT : events::EventHandler>(&mut self) {
+        todo!()
+    }
+}
+
+
 impl interface::window_manip::WmVisibilityController for WindowManager {
-    fn set_visible(&self, wid: WindowId, visible: bool) -> Result<()> {
+    fn set_visible(&mut self, wid: WindowId, visible: bool) -> Result<()> {
         if visible {
             self.connection.send_and_check_request(&xcb::x::MapWindow {
                 window: self.get_xwindow(&wid)?
@@ -418,5 +433,19 @@ impl interface::window_manip::WmVisibilityController for WindowManager {
         }
 
         Ok(())
+    }
+}
+
+
+impl interface::window_manip::WmTitleController for WindowManager {
+    fn set_title(&mut self, wid: WindowId, title: &str) -> Result<()> {
+        self.connection.send_and_check_request(&xcb::x::ChangeProperty {
+            mode: xcb::x::PropMode::Replace,
+            window: self.get_xwindow(&wid)?,
+            property: self.atoms._NET_WM_NAME,
+            r#type: self.atoms.UTF8_STRING,
+            data: title.as_bytes()
+        }) 
+        .or_else(|_| Err(Error::PlatformApiFailed("failed to set title")))      
     }
 }

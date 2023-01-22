@@ -3,13 +3,13 @@ use crate::*;
 
 pub trait WmTitleController {
 
-    fn set_title(&self, wid: WindowId, title: &str) -> Result<()>;
+    fn set_title(&mut self, wid: WindowId, title: &str) -> Result<()>;
 
 }
 
 
 pub trait WmVisibilityController {
 
-    fn set_visible(&self, wid: WindowId, visible: bool) -> Result<()>;
+    fn set_visible(&mut self, wid: WindowId, visible: bool) -> Result<()>;
 
 }
