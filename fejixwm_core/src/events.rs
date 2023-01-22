@@ -24,13 +24,7 @@ pub enum WindowEvent {
 }
 
 
-pub enum EventOutcome {
-    None,
-    Exit
-}
-
-
-pub type EventHandler<'a> = &'a dyn FnMut(AnyEvent) -> EventOutcome;
+pub trait EventHandler : FnMut(AnyEvent) {}
 
 
 impl std::fmt::Display for AnyEvent {

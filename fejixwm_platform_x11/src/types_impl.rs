@@ -1,7 +1,8 @@
-use crate::core::*;
+use crate::core::{*, errors::{Result, Error}};
 use crate::types::*;
 
 use x11::xlib;
+use xcb;
 
 use std::{
     collections::HashMap,
@@ -10,41 +11,40 @@ use std::{
 
 
 
-impl ShellClientTrait for ShellClient {
-    fn new(info: &ShellClientInfo) -> Result<Self> {
+impl WindowManager {
+    pub fn new(info: &WindowManagerInfo) -> Result<Self> {
         let (connection, default_screen_number) = Self::connect()?;
         let input_method = Self::create_input_method(&connection)?;
-        let atoms = Atoms::intern_all(&connection)
+        let atoms = XAtoms::intern_all(&connection)
             .or_else(|_| Err(Error::PlatformApiFailed("cannot get X atoms")))?;
 
         Ok(Self {
-            name,
-            window_ids: Mutex::new(HashMap::new()),
+            name: info.name.clone(),
             connection,
             default_screen_number,
             atoms,
-            input_method
+            input_method,
+
+            windows: HashMap::new(),
+            window_state_cache: HashMap::new(),
+            smooth_redraw_drivers: HashMap::new(),
+            input_drivers: HashMap::new(),
         })
     }
 
 
-    pub(crate) fn add_window_id(&self, window: xcb::x::Window, id: core::WindowId) -> Result<()> {
-        let mut window_ids = self.window_ids.try_lock()
-            .or_else(|_| Err(Error::InternalLogicFailed))?;
-        
-        window_ids.insert(window, id);
-
-        Ok(())
+    fn destroy(&mut self) {
+        self.detroy_input_method();
     }
 
 
-    pub(crate) fn remove_window_id(&self, window: &xcb::x::Window) -> Result<()> {
-        let mut window_ids = self.window_ids.try_lock()
-            .or_else(|_| Err(Error::InternalLogicFailed))?;
-        
-        window_ids.remove(&window);
+    fn register_window(&mut self, wid: WindowId, handle: xcb::x::Window) {
+        self.windows.insert(wid, handle);
+    }
 
-        Ok(())
+
+    fn unregister_window(&mut self, wid: &WindowId){
+        self.windows.remove(&wid);
     }
 
 
@@ -78,81 +78,36 @@ impl ShellClientTrait for ShellClient {
         }
     }
 
-}
 
-
-impl Drop for PlatformApp {
-    fn drop(&mut self) {
-        self.detroy_input_method();
-    }
-}
-
-
-impl Window {
-    fn new(
-        app: AppRef,
-        params: core::WindowInfo,
-        visual_data: WindowInternalVisualData
-    ) -> core::Result<Self> {
-
-        let xid = Self::create_window(&app, &params, visual_data)?;
-        Self::set_window_protocols(&app, xid, &params)?;
-        app.app.add_window_id(xid, params.id)?;
-
-        let mut myself = Self {
-            app,
-            id: params.id,
-            size: Mutex::new(params.size.clone()),
-            xid,
-            smooth_redraw_driver: None,
-            input_driver: None
-        };
-
-        myself.init_drivers(&params)?;
-
-        Ok(myself)
-    
+    fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
+        todo!();
+        Ok(())
     }
 
 
-    pub(crate) fn get_smooth_redraw_driver_mut(&self) -> Result<MutexGuard<WindowSmoothRedrawDriver>> {
-        if self.smooth_redraw_driver.is_none() {
-            return Err(Error::InternalLogicFailed)
-        }
+    fn create_xwindow(&self, info: &WindowInfo, visual_info: &WindowVisualInfo) -> Result<xcb::x::Window> {
+        let xid = self.connection.generate_id();
 
-        self.smooth_redraw_driver.as_ref().unwrap().try_lock()
-            .or_else(|_| Err(Error::InternalLogicFailed))
-    }
+        let default_screen = self.get_default_screen();
 
-
-    fn create_window(
-        app: &AppRef,
-        params: &core::WindowInfo,
-        visual_data: WindowInternalVisualData
-    ) -> Result<xcb::x::Window> {
-        let xid = app.app.connection.generate_id();
-
-        let default_screen = app.app.get_default_screen();
-        let default_parent_window = default_screen.root();
-
-        app.app.connection.send_and_check_request(&xcb::x::CreateWindow {
+        self.connection.send_and_check_request(&xcb::x::CreateWindow {
             wid: xid,
-            parent: default_parent_window,
+            parent: default_screen.root(),
             class: xcb::x::WindowClass::InputOutput,
             
             x: 0,
             y: 0,
-            width: params.size.width as u16,
-            height: params.size.height as u16,
+            width: info.size.width as u16,
+            height: info.size.height as u16,
             border_width: 0,
             
             // TODO Is screen depth important?
             depth: xcb::x::COPY_FROM_PARENT as u8,
-            visual: visual_data.visualid,
+            visual: visual_info.visualid,
             value_list: &[
                 xcb::x::Cw::BackPixel(default_screen.black_pixel()),
                 xcb::x::Cw::EventMask(xcb::x::EventMask::all()),
-                xcb::x::Cw::Colormap(visual_data.colormap)
+                xcb::x::Cw::Colormap(visual_info.colormap)
             ]
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot create window")))?;
@@ -161,59 +116,26 @@ impl Window {
     }
 
 
-    fn destroy(&self) -> Result<()> {
-        self.app.app.remove_window_id(&self.xid)?;
-        self.destroy_drivers()?;
-        self.destroy_window()?;
-        Ok(())
-    }
 
-    fn destroy_window(&self) -> Result<()> {
-        self.app.app.connection.send_and_check_request(&xcb::x::DestroyWindow {
-            window: self.xid
-        })
-        .or_else(|_| Err(Error::PlatformApiFailed("cannot delete window")))
-        .and_then(|_| Ok(()))
-    }
-
-
-    fn init_drivers(&mut self, params: &core::WindowInfo) -> Result<()> {
-        if params.flags.contains(core::WindowFlags::SMOOTH_REDRAW) {
-            self.smooth_redraw_driver = Some(Mutex::new(WindowSmoothRedrawDriver::new(&self.app, self.xid)?));
-        }
-
-        Ok(())
-    }
-
-
-    fn destroy_drivers(&self) -> Result<()> {
-        if self.smooth_redraw_driver.is_some() {
-            let mut driver = self.get_smooth_redraw_driver_mut()?;
-            driver.destroy_counter()?;
-        }
-
-        Ok(())
-    }
-
-
-    fn set_window_protocols(
-        app: &AppRef,
-        window: xcb::x::Window,
-        params: &core::WindowInfo
-    ) -> Result<()> {
-
+    fn create_window_protocols_list(&self, window_info: &core::WindowInfo) -> Vec<xcb::x::Atom> {
         let mut protocols = vec![
-            app.app.atoms.WM_DELETE_WINDOW
+            self.atoms.WM_DELETE_WINDOW
         ];
 
-        if params.flags.contains(core::WindowFlags::SMOOTH_REDRAW) {
-            protocols.push(app.app.atoms._NET_WM_SYNC_REQUEST);
+        if window_info.flags.contains(core::WindowFlags::SMOOTH_REDRAW) {
+            protocols.push(self.atoms._NET_WM_SYNC_REQUEST);
         }
 
-        app.app.connection.send_and_check_request(&xcb::x::ChangeProperty {
+        protocols
+    }
+
+    fn set_window_protocols(&self, window: xcb::x::Window, window_info: &core::WindowInfo) -> Result<()> {
+        let protocols = self.create_window_protocols_list(window_info);
+
+        self.connection.send_and_check_request(&xcb::x::ChangeProperty {
             mode: xcb::x::PropMode::Replace,
             window,
-            property: app.app.atoms.WM_PROTOCOLS,
+            property: self.atoms.WM_PROTOCOLS,
             r#type: xcb::x::ATOM_ATOM,
             data: protocols.as_slice()
         })
@@ -221,35 +143,45 @@ impl Window {
 
         Ok(())
     }
+
+
+    fn init_window_derivers(&self, wid: WindowId) -> Result<()> {
+        Ok(())
+    }
+
 }
 
 
-impl Drop for Window {
+impl Drop for WindowManager {
     fn drop(&mut self) {
-        self.destroy().unwrap();
+        self.destroy();
     }
 }
 
 
+
 impl WindowSmoothRedrawDriver {
-    pub fn new(
-        app: &AppRef,
-        window: xcb::x::Window
-    ) -> Result<Self> {
-        let myself = Self::create_counter(app)?;
-        myself.set_window_counter(app, window)?;
+    pub fn new(wm: &WindowManager, window: xcb::x::Window) -> Result<Self> {
+        let myself = Self::create_self(wm)?;
+        myself.set_window_counter(wm, window)?;
         Ok(myself)
     }
 
 
-    pub fn lock(&mut self) -> Result<()> {
-        self.increment();
-        self.sync()
+    pub fn destroy(&mut self, wm: &WindowManager) -> Result<()> {
+        self.destroy_counter(wm)
     }
 
-    pub fn unlock(&mut self) -> Result<()> {
+
+    pub fn lock(&mut self, wm: &WindowManager) -> Result<()> {
         self.increment();
-        self.sync()
+        self.sync(wm)
+    }
+
+
+    pub fn unlock(&mut self, wm: &WindowManager) -> Result<()> {
+        self.increment();
+        self.sync(wm)
     }
 
 
@@ -264,22 +196,22 @@ impl WindowSmoothRedrawDriver {
     }
 
 
-    fn create_counter(app: &AppRef) -> Result<Self> {
-        let sync_counter = app.app.connection.generate_id();
+    fn create_self(wm: &WindowManager) -> Result<Self> {
+        let sync_counter = wm.connection.generate_id();
         let sync_value = xcb::sync::Int64 { hi: 0, lo: 0 };
 
-        app.app.connection.send_and_check_request(&xcb::sync::CreateCounter {
+        wm.connection.send_and_check_request(&xcb::sync::CreateCounter {
             id: sync_counter,
             initial_value: sync_value,
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot create sync counter")))?;
 
-        Ok(Self { app: app.clone(), sync_counter, sync_value })
+        Ok(Self { sync_counter, sync_value })
     }
 
 
-    fn destroy_counter(&mut self) -> Result<()> {
-        self.app.app.connection.send_and_check_request(&xcb::sync::DestroyCounter {
+    fn destroy_counter(&mut self, wm: &WindowManager) -> Result<()> {
+        wm.connection.send_and_check_request(&xcb::sync::DestroyCounter {
             counter: self.sync_counter,
         })
         .and_then(|_| Ok(()))
@@ -287,17 +219,13 @@ impl WindowSmoothRedrawDriver {
     }
 
 
-    fn set_window_counter(
-        &self,
-        app: &AppRef,
-        window: xcb::x::Window
-    ) -> Result<()> {
+    fn set_window_counter(&self, wm: &WindowManager, window: xcb::x::Window) -> Result<()> {
         use xcb::Xid;
 
-        app.app.connection.send_and_check_request(&xcb::x::ChangeProperty {
+        wm.connection.send_and_check_request(&xcb::x::ChangeProperty {
             mode: xcb::x::PropMode::Replace,
             window,
-            property: app.app.atoms._NET_WM_SYNC_REQUEST_COUNTER,
+            property: wm.atoms._NET_WM_SYNC_REQUEST_COUNTER,
             r#type: xcb::x::ATOM_CARDINAL,
             data: &[self.sync_counter.resource_id()]
         })
@@ -306,8 +234,8 @@ impl WindowSmoothRedrawDriver {
     }
 
 
-    fn sync(&mut self) -> Result<()> {
-        self.app.app.connection.send_and_check_request(&xcb::sync::SetCounter {
+    fn sync(&mut self, wm: &WindowManager) -> Result<()> {
+        wm.connection.send_and_check_request(&xcb::sync::SetCounter {
             counter: self.sync_counter,
             value: self.sync_value
         })
@@ -324,17 +252,10 @@ impl WindowSmoothRedrawDriver {
 }
 
 
-impl Drop for WindowSmoothRedrawDriver {
-    fn drop(&mut self) {
-        self.destroy_counter().unwrap();
-    }
-}
-
-
 
 impl WindowInputDriver {
-    pub fn new(app: &AppRef) -> Result<Self> {
-        let xic = unsafe { xlib::XCreateIC(app.app.input_method) };
+    pub fn new(wm: &WindowManager) -> Result<Self> {
+        let xic = unsafe { xlib::XCreateIC(wm.input_method) };
         if xic.is_null() {
             return Err(Error::PlatformApiFailed("cannot create input context"));
         }

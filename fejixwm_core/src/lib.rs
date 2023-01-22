@@ -26,7 +26,7 @@ This crate contains platform-independent code of FejixWM.
 * **Window manager** (WM) - a global singleton object that represents a shell client.
   WM owns windows and manages them.
 
-* **Window identifier** - an arbitrary number that identifies a WM's window.
+* **Window identifier** (WID) - an arbitrary number that identifies a WM's window.
   The framework is reluctant to expose raw window objects.
 
 * **Canvas** - an object used to display graphics, e.g. OpenGL context or Vulkan surface.

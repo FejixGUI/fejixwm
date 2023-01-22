@@ -12,7 +12,6 @@ fn main() {
 
 
 fn run() -> Result<()> {
-    let app = App::new("wow".to_string())?;
 
     Ok(())
 }

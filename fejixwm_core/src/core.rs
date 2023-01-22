@@ -54,15 +54,16 @@ pub enum CanvasInfo<'a> {
 }
 
 
-pub struct ShellClientInfo<'a> {
-    pub name: &'a str,
+pub struct WindowManagerInfo {
+    pub name: String,
+    pub event_handler: dyn EventHandler,
 }
 
 
-pub trait ShellClientTrait : Sized {
+pub trait WindowManagerTrait : Sized {
     
-    fn new(info: &ShellClientInfo) -> Result<Self>;
+    fn new(info: &WindowManagerInfo) -> Result<Self>;
 
-    fn new_window(info: &WindowInfo) -> Result<()>;
+    fn new_window(&self, info: &WindowInfo) -> Result<()>;
 
 }

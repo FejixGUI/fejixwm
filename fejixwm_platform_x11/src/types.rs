@@ -8,26 +8,30 @@ use std::{
 };
 
 
-pub struct ShellClient {
+/// Applications rarely have more than 4 windows.
+pub type WindowStore<T> = HashMap<core::WindowId, T>;
+
+
+pub struct WindowManager {
     pub(crate) name: String,
     
     pub(crate) connection: xcb::Connection,
-    pub(crate) atoms: Atoms,
+    pub(crate) atoms: XAtoms,
     pub(crate) default_screen_number: i32,
     pub(crate) input_method: x11::xlib::XIM,
     
-    pub(crate) windows: HashMap<core::WindowId, xcb::x::Window>,
-    pub(crate) window_state_cache: HashMap<core::WindowId, WindowState>,
-    pub(crate) smooth_redraw_drivers: HashMap<core::WindowId, WindowSmoothRedrawDriver>,
-    pub(crate) input_drivers: HashMap<core::WindowId, WindowInputDriver>,
+    pub(crate) windows: WindowStore<xcb::x::Window>,
+    pub(crate) window_state_cache: WindowStore<WindowState>,
+    pub(crate) smooth_redraw_drivers: WindowStore<WindowSmoothRedrawDriver>,
+    pub(crate) input_drivers: WindowStore<WindowInputDriver>,
 }
 
 
-pub struct WindowState {
+pub(crate) struct WindowState {
     pub(crate) size: core::PixelSize,
 }
 
-pub struct WindowInternalVisualData {
+pub(crate) struct WindowVisualInfo {
     pub(crate) visualid: xcb::x::Visualid,
     pub(crate) colormap: xcb::x::Colormap,
 }
@@ -46,7 +50,7 @@ pub(crate) struct WindowInputDriver {
 
 
 xcb::atoms_struct! {
-    pub(crate) struct Atoms {
+    pub(crate) struct XAtoms {
         pub WM_PROTOCOLS => b"WM_PROTOCOLS",
         pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
 

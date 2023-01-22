@@ -5,82 +5,95 @@
 #include <stdint.h>
 
 
+typedef const char * fj_string_t;
+typedef uint32_t fj_bool_t;
+typedef uint32_t fj_status_t;
+
+typedef void * fj_wm_t;
+typedef uint32_t fj_wid_t;
+
+typedef uint32_t fj_window_flags_t;
+typedef uint32_t fj_event_type_t;
+
+struct fj_wm_info;
+typedef struct fj_wm_info fj_wm_info_t;
+
+struct fj_window_info;
+typedef struct fj_window_info fj_window_info_t;
+
+struct fj_pixel_size;
+typedef struct fj_pixel_size fj_pixel_size_t;
+
+struct fj_resize_event;
+typedef struct fj_resize_event fj_resize_event_t;
+
+struct fj_event;
+typedef struct fj_event fj_event_t;
+
+typedef void (* fj_event_handler_t)(fj_event_t * event);
+
+
 enum fj_status {
-    FJ_OK       = 0,
-    FJ_ERROR,
+    FJ_OK = 0,
+    FJ_ERR_UNSUPPORTED,
+    FJ_ERR_PLATFORM_API,
+    FJ_ERR_GRAPHICS_API,
+    FJ_ERR_INTERNAL,
 };
 
+enum { FJ_WINDOW_EVENT_MASK = 1 << 15 };
+
 enum fj_event_type {
-    FJ_EVENT_CLOSE  = 1,
+    FJ_EVENT_WINDOW_CLOSE  = 1 | FJ_WINDOW_EVENT_MASK,
 };
 
 enum fj_window_flags {
     FJ_WINDOW_RESIZABLE = 0b00000001,
 };
 
-
-typedef const char * fj_str_t;
-typedef uint32_t fj_bool_t;
-typedef uint32_t fj_status_t;
-
-typedef void * fj_app_t;
-typedef void * fj_app_ref_t;
-typedef void * fj_window_t;
-typedef void * fj_abstract_surface_t;
-
-typedef uint32_t fj_window_id_t;
-typedef uint32_t fj_window_flags_t;
-typedef uint32_t fj_event_type_t;
-typedef uint32_t fj_event_outcome_t;
-
-typedef struct fj_pixel_size {
+struct fj_pixel_size {
     uint32_t width;
     uint32_t height;
-} fj_pixel_size_t;
+};
 
-typedef struct fj_resize_event {
+struct fj_resize_event {
     fj_pixel_size_t size;
-} fj_resize_event_t;
+};
 
-typedef struct fj_event {
-    fj_window_id_t window_id;
-    fj_bool_t is_window_event;
+struct fj_event {
     fj_event_type_t event_type;
+    fj_wid_t window_id;
 
     union {
         fj_resize_event_t resize_event;
     };
-} fj_event_t;
+};
 
-typedef fj_event_outcome_t (* fj_event_handler_t)(fj_event_t * event);
 
-typedef struct fj_window_params {
-    fj_app_ref_t app;
+struct fj_wm_info {
+    fj_string_t name;
+    fj_event_handler_t event_handler;
+};
+
+
+struct fj_window_info {
     fj_pixel_size_t size;
     fj_window_flags_t flags;
-    fj_window_id_t id;
-} fj_window_params_t;
+    fj_wid_t id;
+};
 
 
-fj_app_t fj_app_new(fj_str_t name);
-void fj_app_del(fj_app_t app);
-fj_app_ref_t fj_app_get_ref(fj_app_t app);
-fj_app_ref_t fj_app_ref_clone(fj_app_ref_t app_ref);
-void fj_app_ref_del(fj_app_ref_t app_ref);
-void fj_app_run(fj_app_t app, fj_event_handler_t event_handler);
+fj_status_t fj_wm_new(fj_wm_t ** wm, fj_wm_info_t * info);
+void fj_wm_del(fj_wm_t * wm);
+void fj_wm_run(fj_wm_t * wm);
 
-fj_app_ref_t fj_window_get_app(fj_window_t window);
-fj_status_t fj_window_get_size(fj_window_t window, fj_pixel_size_t * size);
-fj_window_id_t fj_window_get_id(fj_window_t window);
+fj_status_t fj_window_new(fj_wm_t * wm, fj_window_info_t * info);
+void fj_window_del(fj_wm_t * wm, fj_wid_t wid);
 
-fj_window_t fj_surface_get_window(fj_abstract_surface_t surface);
-void fj_surface_get_size(fj_abstract_surface_t surface, fj_pixel_size_t * size);
-fj_status_t fj_surface_resize(fj_abstract_surface_t surface, fj_pixel_size_t * size);
+// TODO Error messages, canvases, interfaces
 
-
-#ifdef FJ_MODULE_WINDOW_MANIP
-    fj_status_t fj_window_set_title(fj_window_t window, fj_str_t title);
-#endif
-
+// #ifdef FJ_MODULE_XXX
+//      definitions...
+// #endif
 
 #endif // FEJIXWM_H_

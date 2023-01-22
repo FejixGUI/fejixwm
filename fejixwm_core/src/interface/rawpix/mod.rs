@@ -6,6 +6,7 @@ use crate::*;
 /// All components are specified in little-endian order.
 /// Not all formats may be supported (typically, only a few are implemented by a platform).
 /// Size of a pixel of a specific format can be determined by [size_of_pixel].
+#[derive(Clone)]
 pub enum PixelFormat {
     /// Red 8 bits, Green 8 bits, Blue 8 bits (packed)
     RGB_888,
@@ -38,23 +39,31 @@ pub fn size_of_pixel(format: PixelFormat) -> usize {
 }
 
 
+#[derive(Clone)]
 pub struct CanvasInfo {
+    
     format: PixelFormat
+
 }
 
 
+#[derive(Clone)]
 pub struct Canvas {
-    format: PixelFormat,
 
-    /// Size of row in bytes (including padding bytes).
-    /// Equal to `width * size_of_pixel(format) + padding`
-    pub stride: usize,
+    pub format: PixelFormat,
 
-    /// Number of padding bytes after each row.
-    /// Equal to `stride - width * size_of_pixel(format)`
+    /// Number of padding bytes added after each row.
     pub padding: usize,
 
     /// Pixel data. Contains `height * (width * size_of_pixel(format) + padding)` bytes.
-    /// The length of this vector MUST NOT be modified
-    pub pixels: Vec<u8>
+    pub pixels: *mut u8,
+}
+
+
+pub trait CanvasManager {
+
+    fn get_canvas(&self, wid: core::WindowId) -> Option<Canvas>;
+
+    fn present(&self, wid: core::WindowId) -> Result<()>;
+
 }
