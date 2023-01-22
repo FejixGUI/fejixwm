@@ -54,9 +54,8 @@ pub enum CanvasInfo<'a> {
 }
 
 
-pub struct WindowManagerInfo<'a> {
+pub struct WindowManagerInfo {
     pub name: String,
-    pub event_handler: &'a dyn EventHandler,
 }
 
 
@@ -65,5 +64,7 @@ pub trait WindowManagerTrait : Sized {
     fn new(info: &WindowManagerInfo) -> Result<Self>;
 
     fn new_window(&self, info: &WindowInfo) -> Result<()>;
+
+    fn run<EventHandlerT : EventHandler>(&self);
 
 }

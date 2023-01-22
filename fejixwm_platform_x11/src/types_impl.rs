@@ -20,6 +20,7 @@ impl WindowManager {
 
         Ok(Self {
             name: info.name.clone(),
+
             connection,
             default_screen_number,
             atoms,
@@ -90,12 +91,14 @@ impl WindowManager {
 
 
     fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
-        let visual_info: WindowVisualInfo = todo!();
+        let visual_info: WindowVisualInfo = self.create_visual_info(info)?;
+        let wid = info.id;
 
         let xwindow = self.create_xwindow(info, &visual_info)?;
-        self.register_window(info.id, xwindow);
-        self.set_xwindow_protocols(xwindow, info)?;
-        self.init_window_drivers(info.id, info.flags.clone())?;
+        self.register_window(wid, xwindow);
+        self.set_xwindow_protocols(wid, info)?;
+        self.init_window_drivers(wid, info.flags)?;
+        self.create_window_canvas(wid, info)?;
 
         Ok(())
     }
@@ -165,12 +168,13 @@ impl WindowManager {
     }
 
     
-    fn set_xwindow_protocols(&self, window: xcb::x::Window, window_info: &core::WindowInfo) -> Result<()> {
+    fn set_xwindow_protocols(&self, wid: WindowId, window_info: &core::WindowInfo) -> Result<()> {
+        let xwindow = self.get_xwindow(&wid)?;
         let protocols = self.create_xwindow_protocols_list(window_info);
 
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {
             mode: xcb::x::PropMode::Replace,
-            window,
+            window: xwindow,
             property: self.atoms.WM_PROTOCOLS,
             r#type: xcb::x::ATOM_ATOM,
             data: protocols.as_slice()
@@ -182,30 +186,82 @@ impl WindowManager {
 
 
     fn init_window_drivers(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
-        let xwindow_id = self.get_xwindow(&wid)?;
-
-        if flags.contains(WindowFlags::SMOOTH_REDRAW) {
-            self.smooth_redraw_drivers.insert(wid, WindowSmoothRedrawDriver::new(self, xwindow_id)?).unwrap();
-        }
-
-        if flags.contains(WindowFlags::TEXT_INPUT) {
-            self.text_input_drivers.insert(wid, WindowTextInputDriver::new(self)?).unwrap();
-        }
-
+        self.init_window_smooth_redraw_driver(wid, flags)?;
+        self.init_window_text_input_driver(wid, flags)?;
         Ok(())
     }
 
 
     fn destroy_window_drivers(&mut self, wid: WindowId) -> Result<()> {
+        self.destroy_window_smooth_redraw_driver(wid)?;
+        self.destroy_window_text_input_driver(wid);
+        Ok(())
+    }
+
+
+    /// Returns Ok(()) if the flags forbid to initialise the driver
+    fn init_window_smooth_redraw_driver(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
+        if flags.contains(WindowFlags::SMOOTH_REDRAW) {
+            self.smooth_redraw_drivers.insert(
+                wid,WindowSmoothRedrawDriver::new(self, self.get_xwindow(&wid)?)?
+            ).unwrap();
+        }
+        Ok(())
+    }
+
+
+    fn init_window_text_input_driver(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
+        if flags.contains(WindowFlags::TEXT_INPUT) {
+            self.text_input_drivers.insert(
+                wid, WindowTextInputDriver::new(self)?
+            ).unwrap();
+        }
+        Ok(())
+    }
+
+
+    fn destroy_window_smooth_redraw_driver(&mut self, wid: WindowId) -> Result<()> {
         if let Some(mut driver) = self.smooth_redraw_drivers.remove(&wid) {
             driver.destroy(self)?;
         }
+        Ok(())
+    }
 
+
+    fn destroy_window_text_input_driver(&mut self, wid: WindowId) {
         if let Some(mut driver) = self.text_input_drivers.remove(&wid) {
             driver.destroy();
         }
+    }
 
-        Ok(())
+
+    fn get_default_visual_info(&self) -> WindowVisualInfo {
+        let screen = self.get_default_screen();
+        
+        WindowVisualInfo {
+            visualid: screen.root_visual(),
+            colormap: screen.default_colormap(),
+        }
+    }
+
+
+    fn create_visual_info(&mut self, window_info: &WindowInfo) -> Result<WindowVisualInfo> {
+        match window_info.canvas_info {
+            CanvasInfo::None => Ok(self.get_default_visual_info()),
+
+            // TODO implement graphics APIs
+            _ => Err(Error::UnsupportedFeature),
+        }
+    }
+
+
+    fn create_window_canvas(&mut self, wid: WindowId, info: &WindowInfo) -> Result<()> {
+        match info.canvas_info {
+            CanvasInfo::None => Ok(()),
+
+            // TODO implement graphics APIs
+            _ => Err(Error::UnsupportedFeature)
+        }
     }
 
 }
@@ -244,6 +300,7 @@ impl WindowSmoothRedrawDriver {
     }
 
 
+    /// Must be called on sync request event
     pub fn set_sync_value(&mut self, value: i64) {
         self.sync_value.lo = (value & 0xFF_FF_FF_FF) as u32;
         self.sync_value.hi = ((value >> 32) & 0xFF_FF_FF_FF) as i32;
@@ -340,6 +397,25 @@ impl WindowTextInputDriver {
         //     type_ = xlib::KeyPress,
         //     display = self.
         // }
+
+        Ok(())
+    }
+}
+
+
+impl interface::window_manip::WmVisibilityController for WindowManager {
+    fn set_visible(&self, wid: WindowId, visible: bool) -> Result<()> {
+        if visible {
+            self.connection.send_and_check_request(&xcb::x::MapWindow {
+                window: self.get_xwindow(&wid)?
+            })
+            .or_else(|_| Err(Error::PlatformApiFailed("cannot map window")))?
+        } else {
+            self.connection.send_and_check_request(&xcb::x::UnmapWindow {
+                window: self.get_xwindow(&wid)?
+            })
+            .or_else(|_| Err(Error::PlatformApiFailed("cannot unmap window")))?
+        }
 
         Ok(())
     }

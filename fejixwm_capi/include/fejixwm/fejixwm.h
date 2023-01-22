@@ -83,12 +83,12 @@ struct fj_window_info {
 };
 
 
-fj_status_t fj_wm_new(fj_wm_t ** wm, fj_wm_info_t * info);
-void fj_wm_del(fj_wm_t * wm);
-void fj_wm_run(fj_wm_t * wm);
+fj_status_t fj_wm_new(fj_wm_t * wm, fj_wm_info_t * info);
+void fj_wm_del(fj_wm_t wm);
+void fj_wm_run(fj_wm_t wm);
 
-fj_status_t fj_window_new(fj_wm_t * wm, fj_window_info_t * info);
-void fj_window_del(fj_wm_t * wm, fj_wid_t wid);
+fj_status_t fj_window_new(fj_wm_t wm, fj_window_info_t * info);
+void fj_window_del(fj_wm_t wm, fj_wid_t wid);
 
 // TODO Error messages, canvases, interfaces
 

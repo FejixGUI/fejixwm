@@ -1,8 +1,15 @@
 use crate::*;
 
 
-pub trait WindowWithTitle : WindowTrait {
+pub trait WmTitleController {
 
-    fn set_title(&self, title: &str) -> Result<()>;
+    fn set_title(&self, wid: WindowId, title: &str) -> Result<()>;
+
+}
+
+
+pub trait WmVisibilityController {
+
+    fn set_visible(&self, wid: WindowId, visible: bool) -> Result<()>;
 
 }

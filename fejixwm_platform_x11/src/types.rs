@@ -14,7 +14,7 @@ pub type WindowStorage<T> = HashMap<core::WindowId, T>;
 
 pub struct WindowManager {
     pub(crate) name: String,
-    
+
     pub(crate) connection: xcb::Connection,
     pub(crate) atoms: XAtoms,
     pub(crate) default_screen_number: i32,
