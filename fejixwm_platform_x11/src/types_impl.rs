@@ -25,26 +25,36 @@ impl WindowManager {
             atoms,
             input_method,
 
-            windows: HashMap::new(),
-            window_state_cache: HashMap::new(),
-            smooth_redraw_drivers: HashMap::new(),
-            input_drivers: HashMap::new(),
+            windows: WindowStorage::new(),
+            window_state_cache: WindowStorage::new(),
+            smooth_redraw_drivers: WindowStorage::new(),
+            text_input_drivers: WindowStorage::new(),
         })
     }
 
 
-    fn destroy(&mut self) {
+    fn destroy(&mut self) -> Result<()> {
+        self.destroy_windows()?;
         self.detroy_input_method();
+        Ok(())
     }
 
 
-    fn register_window(&mut self, wid: WindowId, handle: xcb::x::Window) {
-        self.windows.insert(wid, handle);
+    fn register_window(&mut self, wid: WindowId, xwindow_id: xcb::x::Window) {
+        self.windows.insert(wid, xwindow_id);
     }
 
 
-    fn unregister_window(&mut self, wid: &WindowId){
+    fn unregister_window(&mut self, wid: &WindowId) {
         self.windows.remove(&wid);
+    }
+
+
+    fn get_xwindow(&self, wid: &WindowId) -> Result<xcb::x::Window> {
+        let xwindow = self.windows.get(&wid)
+            .ok_or_else(|| Error::InvalidArgument)?;
+
+        Ok(xwindow.clone())
     }
 
 
@@ -80,18 +90,24 @@ impl WindowManager {
 
 
     fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
-        todo!();
+        let visual_info: WindowVisualInfo = todo!();
+
+        let xwindow = self.create_xwindow(info, &visual_info)?;
+        self.register_window(info.id, xwindow);
+        self.set_xwindow_protocols(xwindow, info)?;
+        self.init_window_drivers(info.id, info.flags.clone())?;
+
         Ok(())
     }
 
 
     fn create_xwindow(&self, info: &WindowInfo, visual_info: &WindowVisualInfo) -> Result<xcb::x::Window> {
-        let xid = self.connection.generate_id();
+        let xwindow_id = self.connection.generate_id();
 
         let default_screen = self.get_default_screen();
 
         self.connection.send_and_check_request(&xcb::x::CreateWindow {
-            wid: xid,
+            wid: xwindow_id,
             parent: default_screen.root(),
             class: xcb::x::WindowClass::InputOutput,
             
@@ -112,12 +128,31 @@ impl WindowManager {
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot create window")))?;
 
-        Ok(xid)
+        Ok(xwindow_id)
     }
 
 
+    fn destroy_xwindow(&mut self, wid: WindowId) -> Result<()> {
+        self.connection.send_and_check_request(&xcb::x::DestroyWindow {
+            window: self.windows[&wid]
+        })
+        .or_else(|_| Err(Error::PlatformApiFailed("cannot destroy window")))
+    }
 
-    fn create_window_protocols_list(&self, window_info: &core::WindowInfo) -> Vec<xcb::x::Atom> {
+
+    fn destroy_windows(&mut self) -> Result<()> {
+        let window_ids = self.windows.keys().copied().collect::<Vec<u32>>();
+        for wid in window_ids {
+            self.destroy_window_drivers(wid)?;
+            self.destroy_xwindow(wid)?;
+            self.unregister_window(&wid);
+        }
+
+        Ok(())
+    }
+
+
+    fn create_xwindow_protocols_list(&self, window_info: &core::WindowInfo) -> Vec<xcb::x::Atom> {
         let mut protocols = vec![
             self.atoms.WM_DELETE_WINDOW
         ];
@@ -129,8 +164,9 @@ impl WindowManager {
         protocols
     }
 
-    fn set_window_protocols(&self, window: xcb::x::Window, window_info: &core::WindowInfo) -> Result<()> {
-        let protocols = self.create_window_protocols_list(window_info);
+    
+    fn set_xwindow_protocols(&self, window: xcb::x::Window, window_info: &core::WindowInfo) -> Result<()> {
+        let protocols = self.create_xwindow_protocols_list(window_info);
 
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {
             mode: xcb::x::PropMode::Replace,
@@ -145,7 +181,30 @@ impl WindowManager {
     }
 
 
-    fn init_window_derivers(&self, wid: WindowId) -> Result<()> {
+    fn init_window_drivers(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
+        let xwindow_id = self.get_xwindow(&wid)?;
+
+        if flags.contains(WindowFlags::SMOOTH_REDRAW) {
+            self.smooth_redraw_drivers.insert(wid, WindowSmoothRedrawDriver::new(self, xwindow_id)?).unwrap();
+        }
+
+        if flags.contains(WindowFlags::TEXT_INPUT) {
+            self.text_input_drivers.insert(wid, WindowTextInputDriver::new(self)?).unwrap();
+        }
+
+        Ok(())
+    }
+
+
+    fn destroy_window_drivers(&mut self, wid: WindowId) -> Result<()> {
+        if let Some(mut driver) = self.smooth_redraw_drivers.remove(&wid) {
+            driver.destroy(self)?;
+        }
+
+        if let Some(mut driver) = self.text_input_drivers.remove(&wid) {
+            driver.destroy();
+        }
+
         Ok(())
     }
 
@@ -154,7 +213,7 @@ impl WindowManager {
 
 impl Drop for WindowManager {
     fn drop(&mut self) {
-        self.destroy();
+        self.destroy().unwrap();
     }
 }
 
@@ -253,7 +312,7 @@ impl WindowSmoothRedrawDriver {
 
 
 
-impl WindowInputDriver {
+impl WindowTextInputDriver {
     pub fn new(wm: &WindowManager) -> Result<Self> {
         let xic = unsafe { xlib::XCreateIC(wm.input_method) };
         if xic.is_null() {
@@ -265,6 +324,13 @@ impl WindowInputDriver {
             input: Vec::with_capacity(16),
             input_finished: false
         })
+    }
+
+
+    pub fn destroy(&mut self) {
+        unsafe {
+            xlib::XDestroyIC(self.input_context);
+        }
     }
 
 

@@ -9,7 +9,7 @@ use std::{
 
 
 /// Applications rarely have more than 4 windows.
-pub type WindowStore<T> = HashMap<core::WindowId, T>;
+pub type WindowStorage<T> = HashMap<core::WindowId, T>;
 
 
 pub struct WindowManager {
@@ -20,10 +20,10 @@ pub struct WindowManager {
     pub(crate) default_screen_number: i32,
     pub(crate) input_method: x11::xlib::XIM,
     
-    pub(crate) windows: WindowStore<xcb::x::Window>,
-    pub(crate) window_state_cache: WindowStore<WindowState>,
-    pub(crate) smooth_redraw_drivers: WindowStore<WindowSmoothRedrawDriver>,
-    pub(crate) input_drivers: WindowStore<WindowInputDriver>,
+    pub(crate) windows: WindowStorage<xcb::x::Window>,
+    pub(crate) window_state_cache: WindowStorage<WindowState>,
+    pub(crate) smooth_redraw_drivers: WindowStorage<WindowSmoothRedrawDriver>,
+    pub(crate) text_input_drivers: WindowStorage<WindowTextInputDriver>,
 }
 
 
@@ -42,7 +42,7 @@ pub(crate) struct WindowSmoothRedrawDriver {
     pub(crate) sync_value: xcb::sync::Int64,
 }
 
-pub(crate) struct WindowInputDriver {
+pub(crate) struct WindowTextInputDriver {
     pub(crate) input_context: x11::xlib::XIC,
     pub(crate) input: Vec<u8>,
     pub(crate) input_finished: bool,

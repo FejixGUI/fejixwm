@@ -54,9 +54,9 @@ pub enum CanvasInfo<'a> {
 }
 
 
-pub struct WindowManagerInfo {
+pub struct WindowManagerInfo<'a> {
     pub name: String,
-    pub event_handler: dyn EventHandler,
+    pub event_handler: &'a dyn EventHandler,
 }
 
 
