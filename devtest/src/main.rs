@@ -19,7 +19,7 @@ fn run() -> Result<()> {
 
     let window_info = WindowInfo {
         id: WID,
-        flags: WindowFlags::empty(),
+        flags: WindowFlags::empty() | WindowFlags::SMOOTH_REDRAW | WindowFlags::TEXT_INPUT,
         size: PixelSize::new(800, 600),
         canvas_info: CanvasInfo::None
     };

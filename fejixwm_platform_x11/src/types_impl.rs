@@ -6,7 +6,8 @@ use xcb;
 
 use std::{
     collections::HashMap,
-    ptr::{null, null_mut}
+    ptr::{null, null_mut},
+    ffi
 };
 
 
@@ -204,7 +205,7 @@ impl WindowManager {
         if flags.contains(WindowFlags::SMOOTH_REDRAW) {
             self.smooth_redraw_drivers.insert(
                 wid,WindowSmoothRedrawDriver::new(self, self.get_xwindow(&wid)?)?
-            ).unwrap();
+            );
         }
         Ok(())
     }
@@ -213,8 +214,8 @@ impl WindowManager {
     fn init_window_text_input_driver(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
         if flags.contains(WindowFlags::TEXT_INPUT) {
             self.text_input_drivers.insert(
-                wid, WindowTextInputDriver::new(self)?
-            ).unwrap();
+                wid, WindowTextInputDriver::new(self, self.get_xwindow(&wid)?)?
+            );
         }
         Ok(())
     }
@@ -370,8 +371,28 @@ impl WindowSmoothRedrawDriver {
 
 
 impl WindowTextInputDriver {
-    pub fn new(wm: &WindowManager) -> Result<Self> {
-        let xic = unsafe { xlib::XCreateIC(wm.input_method) };
+    pub fn new(wm: &WindowManager, xwindow: xcb::x::Window) -> Result<Self> {
+        use xcb::Xid;
+
+        let input_style = ffi::CString::new(xlib::XNInputStyle)
+            .or_else(|_| Err(Error::InternalLogicFailed))?;
+
+        let client_window = ffi::CString::new(xlib::XNClientWindow)
+            .or_else(|_| Err(Error::InternalLogicFailed))?;
+
+        let focus_window = ffi::CString::new(xlib::XNFocusWindow)
+            .or_else(|_| Err(Error::InternalLogicFailed))?;
+
+        let xic = unsafe {
+            xlib::XCreateIC(
+                wm.input_method,
+                input_style.as_ptr(), xlib::XIMPreeditNothing | xlib::XIMStatusNothing,
+                client_window.as_ptr(), xwindow.resource_id(),
+                focus_window.as_ptr(), xwindow.resource_id(),
+                null() as *const u8
+            )
+        };
+
         if xic.is_null() {
             return Err(Error::PlatformApiFailed("cannot create input context"));
         }
