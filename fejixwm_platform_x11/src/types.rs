@@ -21,11 +21,26 @@ pub struct WindowManager {
     pub(crate) default_screen_number: i32,
     pub(crate) input_method: x11::xlib::XIM,
     
-    pub(crate) windows: WindowStorage<WindowHandle>,
+    pub(crate) window_handles: WindowStorage<WindowHandle>,
     pub(crate) window_state_cache: WindowStorage<WindowState>,
     pub(crate) smooth_redraw_drivers: WindowStorage<WindowSmoothRedrawDriver>,
     pub(crate) text_input_drivers: WindowStorage<WindowTextInputDriver>,
 }
+
+
+xcb::atoms_struct! {
+    pub(crate) struct XAtoms {
+        pub WM_PROTOCOLS => b"WM_PROTOCOLS",
+        pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
+
+        pub _NET_WM_NAME => b"_NET_WM_NAME",
+        pub UTF8_STRING => b"UTF8_STRING",
+
+        pub _NET_WM_SYNC_REQUEST => b"_NET_WM_SYNC_REQUEST",
+        pub _NET_WM_SYNC_REQUEST_COUNTER => b"_NET_WM_SYNC_REQUEST_COUNTER",
+    }
+}
+
 
 
 pub(crate) struct WindowState {
@@ -63,15 +78,21 @@ pub(crate) struct WindowTextInputDriver {
 }
 
 
-xcb::atoms_struct! {
-    pub(crate) struct XAtoms {
-        pub WM_PROTOCOLS => b"WM_PROTOCOLS",
-        pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
+pub(crate) trait WmTextInputDriver {
+    fn new_driver(&mut self, wid: WindowId) -> Result<()>;
 
-        pub _NET_WM_NAME => b"_NET_WM_NAME",
-        pub UTF8_STRING => b"UTF8_STRING",
+    /// Does nothing if no driver was created for the window
+    fn drop_driver(&mut self, wid: WindowId) -> Result<()>;
 
-        pub _NET_WM_SYNC_REQUEST => b"_NET_WM_SYNC_REQUEST",
-        pub _NET_WM_SYNC_REQUEST_COUNTER => b"_NET_WM_SYNC_REQUEST_COUNTER",
-    }
+    // TODO Finish text input driver interface
+
+    // fn handle_key_event(&self, event: &xcb::x::KeyPressEvent) -> Result<()> {
+    //     // TODO
+    //     // let event = xlib::XKeyPressedEvent {
+    //     //     type_ = xlib::KeyPress,
+    //     //     display = self.
+    //     // }
+
+    //     Ok(())
+    // }
 }

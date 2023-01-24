@@ -9,8 +9,8 @@ extern crate x11;
 extern crate xcb;
 
 pub mod types;
-pub mod types_impl;
-pub mod traits_impl;
+pub mod wm_impl;
+pub mod wm_traits_impl;
 
 
 pub use types::*;

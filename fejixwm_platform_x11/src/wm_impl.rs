@@ -12,6 +12,33 @@ use std::{
 
 
 
+impl WindowManagerTrait for WindowManager {
+    fn new(info: &WindowManagerInfo) -> Result<Self> {
+        Self::new(info)
+    }
+
+    fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
+        self.create_window(info)
+    }
+
+    fn drop_window(&mut self, wid: WindowId) -> Result<()> {
+        self.destroy_window(wid)
+    }
+
+    fn run<EventHandlerT : events::EventHandler>(&mut self) {
+        todo!()
+    }
+}
+
+
+impl Drop for WindowManager {
+    fn drop(&mut self) {
+        self.destroy().unwrap();
+    }
+}
+
+
+
 impl WindowManager {
     pub fn new(info: &WindowManagerInfo) -> Result<Self> {
         let (connection, default_screen_number) = Self::connect()?;
@@ -27,7 +54,7 @@ impl WindowManager {
             atoms,
             input_method,
 
-            windows: WindowStorage::new(),
+            window_handles: WindowStorage::new(),
             window_state_cache: WindowStorage::new(),
             smooth_redraw_drivers: WindowStorage::new(),
             text_input_drivers: WindowStorage::new(),
@@ -43,17 +70,17 @@ impl WindowManager {
 
 
     fn register_window(&mut self, wid: WindowId, xwindow_id: xcb::x::Window) {
-        self.windows.insert(wid, xwindow_id);
+        self.window_handles.insert(wid, xwindow_id);
     }
 
 
     fn unregister_window(&mut self, wid: &WindowId) {
-        self.windows.remove(&wid);
+        self.window_handles.remove(&wid);
     }
 
 
     pub(crate) fn get_window_handle(&self, wid: &WindowId) -> Result<xcb::x::Window> {
-        let xwindow = self.windows.get(&wid)
+        let xwindow = self.window_handles.get(&wid)
             .ok_or_else(|| Error::InvalidArgument)?;
 
         Ok(xwindow.clone())
@@ -146,14 +173,14 @@ impl WindowManager {
 
     fn destroy_xwindow(&mut self, wid: WindowId) -> Result<()> {
         self.connection.send_and_check_request(&xcb::x::DestroyWindow {
-            window: self.windows[&wid]
+            window: self.window_handles[&wid]
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot destroy window")))
     }
 
 
     fn destroy_windows(&mut self) -> Result<()> {
-        let window_ids = self.windows.keys().copied().collect::<Vec<u32>>();
+        let window_ids = self.window_handles.keys().copied().collect::<Vec<u32>>();
         for wid in window_ids {
             self.drop_window(wid)?;
         }
@@ -197,32 +224,19 @@ impl WindowManager {
             (self as &mut dyn WmSmoothRedrawDriver).new_driver(wid)?;
         }
 
-        self.init_window_text_input_driver(wid, flags)?;
+        if flags.contains(WindowFlags::TEXT_INPUT) {
+            (self as &mut dyn WmTextInputDriver).new_driver(wid)?;
+        }
+
         Ok(())
     }
 
 
     fn destroy_window_drivers(&mut self, wid: WindowId) -> Result<()> {
         (self as &mut dyn WmSmoothRedrawDriver).drop_driver(wid)?;
-        self.destroy_window_text_input_driver(wid);
+        (self as &mut dyn WmTextInputDriver).drop_driver(wid)?;
         Ok(())
     }
-
-    fn init_window_text_input_driver(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
-        if flags.contains(WindowFlags::TEXT_INPUT) {
-            self.text_input_drivers.insert(
-                wid, WindowTextInputDriver::new(self, self.get_window_handle(&wid)?)?
-            );
-        }
-        Ok(())
-    }
-
-    fn destroy_window_text_input_driver(&mut self, wid: WindowId) {
-        if let Some(mut driver) = self.text_input_drivers.remove(&wid) {
-            driver.destroy();
-        }
-    }
-
 
     fn get_default_visual_info(&self) -> WindowVisualInfo {
         let screen = self.get_default_screen();
@@ -255,63 +269,3 @@ impl WindowManager {
 
 }
 
-
-impl Drop for WindowManager {
-    fn drop(&mut self) {
-        self.destroy().unwrap();
-    }
-}
-
-
-impl WindowTextInputDriver {
-    pub fn new(wm: &WindowManager, xwindow: xcb::x::Window) -> Result<Self> {
-        use xcb::Xid;
-
-        let input_style = ffi::CString::new(xlib::XNInputStyle)
-            .or_else(|_| Err(Error::InternalLogicFailed))?;
-
-        let client_window = ffi::CString::new(xlib::XNClientWindow)
-            .or_else(|_| Err(Error::InternalLogicFailed))?;
-
-        let focus_window = ffi::CString::new(xlib::XNFocusWindow)
-            .or_else(|_| Err(Error::InternalLogicFailed))?;
-
-        let xic = unsafe {
-            xlib::XCreateIC(
-                wm.input_method,
-                input_style.as_ptr(), xlib::XIMPreeditNothing | xlib::XIMStatusNothing,
-                client_window.as_ptr(), xwindow.resource_id(),
-                focus_window.as_ptr(), xwindow.resource_id(),
-                null() as *const u8
-            )
-        };
-
-        if xic.is_null() {
-            return Err(Error::PlatformApiFailed("cannot create input context"));
-        }
-
-        Ok(Self {
-            input_context: xic,
-            input: Vec::with_capacity(16),
-            input_finished: false
-        })
-    }
-
-
-    pub fn destroy(&mut self) {
-        unsafe {
-            xlib::XDestroyIC(self.input_context);
-        }
-    }
-
-
-    pub fn handle_key_event(&self, event: &xcb::x::KeyPressEvent) -> Result<()> {
-        // TODO
-        // let event = xlib::XKeyPressedEvent {
-        //     type_ = xlib::KeyPress,
-        //     display = self.
-        // }
-
-        Ok(())
-    }
-}
