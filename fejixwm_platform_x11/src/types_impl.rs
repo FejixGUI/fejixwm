@@ -52,7 +52,7 @@ impl WindowManager {
     }
 
 
-    fn get_xwindow(&self, wid: &WindowId) -> Result<xcb::x::Window> {
+    pub(crate) fn get_window_handle(&self, wid: &WindowId) -> Result<xcb::x::Window> {
         let xwindow = self.windows.get(&wid)
             .ok_or_else(|| Error::InvalidArgument)?;
 
@@ -91,7 +91,7 @@ impl WindowManager {
     }
 
 
-    fn create_window(&mut self, info: &WindowInfo) -> Result<()> {
+    pub(crate) fn create_window(&mut self, info: &WindowInfo) -> Result<()> {
         let visual_info: WindowVisualInfo = self.create_visual_info(info)?;
         let wid = info.id;
 
@@ -101,6 +101,14 @@ impl WindowManager {
         self.init_window_drivers(wid, info.flags)?;
         self.create_window_canvas(wid, info)?;
 
+        Ok(())
+    }
+
+
+    pub(crate) fn destroy_window(&mut self, wid: WindowId) -> Result<()> {
+        self.destroy_window_drivers(wid)?;
+        self.destroy_xwindow(wid)?;
+        self.unregister_window(&wid);
         Ok(())
     }
 
@@ -147,9 +155,7 @@ impl WindowManager {
     fn destroy_windows(&mut self) -> Result<()> {
         let window_ids = self.windows.keys().copied().collect::<Vec<u32>>();
         for wid in window_ids {
-            self.destroy_window_drivers(wid)?;
-            self.destroy_xwindow(wid)?;
-            self.unregister_window(&wid);
+            self.drop_window(wid)?;
         }
 
         Ok(())
@@ -170,7 +176,7 @@ impl WindowManager {
 
     
     fn set_xwindow_protocols(&self, wid: WindowId, window_info: &core::WindowInfo) -> Result<()> {
-        let xwindow = self.get_xwindow(&wid)?;
+        let xwindow = self.get_window_handle(&wid)?;
         let protocols = self.create_xwindow_protocols_list(window_info);
 
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {
@@ -187,47 +193,29 @@ impl WindowManager {
 
 
     fn init_window_drivers(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
-        self.init_window_smooth_redraw_driver(wid, flags)?;
+        if flags.contains(WindowFlags::SMOOTH_REDRAW) {
+            (self as &mut dyn WmSmoothRedrawDriver).new_driver(wid)?;
+        }
+
         self.init_window_text_input_driver(wid, flags)?;
         Ok(())
     }
 
 
     fn destroy_window_drivers(&mut self, wid: WindowId) -> Result<()> {
-        self.destroy_window_smooth_redraw_driver(wid)?;
+        (self as &mut dyn WmSmoothRedrawDriver).drop_driver(wid)?;
         self.destroy_window_text_input_driver(wid);
         Ok(())
     }
 
-
-    /// Returns Ok(()) if the flags forbid to initialise the driver
-    fn init_window_smooth_redraw_driver(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
-        if flags.contains(WindowFlags::SMOOTH_REDRAW) {
-            self.smooth_redraw_drivers.insert(
-                wid,WindowSmoothRedrawDriver::new(self, self.get_xwindow(&wid)?)?
-            );
-        }
-        Ok(())
-    }
-
-
     fn init_window_text_input_driver(&mut self, wid: WindowId, flags: WindowFlags) -> Result<()> {
         if flags.contains(WindowFlags::TEXT_INPUT) {
             self.text_input_drivers.insert(
-                wid, WindowTextInputDriver::new(self, self.get_xwindow(&wid)?)?
+                wid, WindowTextInputDriver::new(self, self.get_window_handle(&wid)?)?
             );
         }
         Ok(())
     }
-
-
-    fn destroy_window_smooth_redraw_driver(&mut self, wid: WindowId) -> Result<()> {
-        if let Some(mut driver) = self.smooth_redraw_drivers.remove(&wid) {
-            driver.destroy(self)?;
-        }
-        Ok(())
-    }
-
 
     fn destroy_window_text_input_driver(&mut self, wid: WindowId) {
         if let Some(mut driver) = self.text_input_drivers.remove(&wid) {
@@ -273,101 +261,6 @@ impl Drop for WindowManager {
         self.destroy().unwrap();
     }
 }
-
-
-
-impl WindowSmoothRedrawDriver {
-    pub fn new(wm: &WindowManager, window: xcb::x::Window) -> Result<Self> {
-        let myself = Self::create_self(wm)?;
-        myself.set_window_counter(wm, window)?;
-        Ok(myself)
-    }
-
-
-    pub fn destroy(&mut self, wm: &WindowManager) -> Result<()> {
-        self.destroy_counter(wm)
-    }
-
-
-    pub fn lock(&mut self, wm: &WindowManager) -> Result<()> {
-        self.increment();
-        self.sync(wm)
-    }
-
-
-    pub fn unlock(&mut self, wm: &WindowManager) -> Result<()> {
-        self.increment();
-        self.sync(wm)
-    }
-
-
-    /// Must be called on sync request event
-    pub fn set_sync_value(&mut self, value: i64) {
-        self.sync_value.lo = (value & 0xFF_FF_FF_FF) as u32;
-        self.sync_value.hi = ((value >> 32) & 0xFF_FF_FF_FF) as i32;
-    }
-
-
-    fn get_sync_value(&self) -> i64 {
-        (self.sync_value.hi as i64) << 32 + self.sync_value.lo as i64
-    }
-
-
-    fn create_self(wm: &WindowManager) -> Result<Self> {
-        let sync_counter = wm.connection.generate_id();
-        let sync_value = xcb::sync::Int64 { hi: 0, lo: 0 };
-
-        wm.connection.send_and_check_request(&xcb::sync::CreateCounter {
-            id: sync_counter,
-            initial_value: sync_value,
-        })
-        .or_else(|_| Err(Error::PlatformApiFailed("cannot create sync counter")))?;
-
-        Ok(Self { sync_counter, sync_value })
-    }
-
-
-    fn destroy_counter(&mut self, wm: &WindowManager) -> Result<()> {
-        wm.connection.send_and_check_request(&xcb::sync::DestroyCounter {
-            counter: self.sync_counter,
-        })
-        .and_then(|_| Ok(()))
-        .or_else(|_| Err(Error::PlatformApiFailed("cannot destroy counter")))
-    }
-
-
-    fn set_window_counter(&self, wm: &WindowManager, window: xcb::x::Window) -> Result<()> {
-        use xcb::Xid;
-
-        wm.connection.send_and_check_request(&xcb::x::ChangeProperty {
-            mode: xcb::x::PropMode::Replace,
-            window,
-            property: wm.atoms._NET_WM_SYNC_REQUEST_COUNTER,
-            r#type: xcb::x::ATOM_CARDINAL,
-            data: &[self.sync_counter.resource_id()]
-        })
-        .or_else(|_| Err(Error::PlatformApiFailed("cannot init sync counter")))
-        .and_then(|_| Ok(()))
-    }
-
-
-    fn sync(&mut self, wm: &WindowManager) -> Result<()> {
-        wm.connection.send_and_check_request(&xcb::sync::SetCounter {
-            counter: self.sync_counter,
-            value: self.sync_value
-        })
-        .and_then(|_| Ok(()))
-        .or_else(|_| Err(Error::PlatformApiFailed("cannot set sync counter")))
-    }
-
-
-    fn increment(&mut self) {
-        let mut value = self.get_sync_value();
-        value += 1;
-        self.set_sync_value(value);
-    }
-}
-
 
 
 impl WindowTextInputDriver {
@@ -420,53 +313,5 @@ impl WindowTextInputDriver {
         // }
 
         Ok(())
-    }
-}
-
-
-impl WindowManagerTrait for WindowManager {
-    fn new(info: &WindowManagerInfo) -> Result<Self> {
-        Self::new(info)
-    }
-
-    fn new_window(&mut self, info: &WindowInfo) -> Result<()> {
-        self.create_window(info)
-    }
-
-    fn run<EventHandlerT : events::EventHandler>(&mut self) {
-        todo!()
-    }
-}
-
-
-impl interface::window_manip::WmVisibilityController for WindowManager {
-    fn set_visible(&mut self, wid: WindowId, visible: bool) -> Result<()> {
-        if visible {
-            self.connection.send_and_check_request(&xcb::x::MapWindow {
-                window: self.get_xwindow(&wid)?
-            })
-            .or_else(|_| Err(Error::PlatformApiFailed("cannot map window")))?
-        } else {
-            self.connection.send_and_check_request(&xcb::x::UnmapWindow {
-                window: self.get_xwindow(&wid)?
-            })
-            .or_else(|_| Err(Error::PlatformApiFailed("cannot unmap window")))?
-        }
-
-        Ok(())
-    }
-}
-
-
-impl interface::window_manip::WmTitleController for WindowManager {
-    fn set_title(&mut self, wid: WindowId, title: &str) -> Result<()> {
-        self.connection.send_and_check_request(&xcb::x::ChangeProperty {
-            mode: xcb::x::PropMode::Replace,
-            window: self.get_xwindow(&wid)?,
-            property: self.atoms._NET_WM_NAME,
-            r#type: self.atoms.UTF8_STRING,
-            data: title.as_bytes()
-        }) 
-        .or_else(|_| Err(Error::PlatformApiFailed("failed to set title")))      
     }
 }

@@ -1,15 +1,16 @@
 #![allow(non_snake_case)]
 
-use crate::core;
+use crate::core::*;
 
 use std::{
-    sync::{Arc, Mutex},
     collections::HashMap,
 };
 
 
 /// Applications rarely have more than 4 windows.
 pub type WindowStorage<T> = HashMap<core::WindowId, T>;
+
+pub(crate) type WindowHandle = xcb::x::Window;
 
 
 pub struct WindowManager {
@@ -20,7 +21,7 @@ pub struct WindowManager {
     pub(crate) default_screen_number: i32,
     pub(crate) input_method: x11::xlib::XIM,
     
-    pub(crate) windows: WindowStorage<xcb::x::Window>,
+    pub(crate) windows: WindowStorage<WindowHandle>,
     pub(crate) window_state_cache: WindowStorage<WindowState>,
     pub(crate) smooth_redraw_drivers: WindowStorage<WindowSmoothRedrawDriver>,
     pub(crate) text_input_drivers: WindowStorage<WindowTextInputDriver>,
@@ -40,6 +41,19 @@ pub(crate) struct WindowVisualInfo {
 pub(crate) struct WindowSmoothRedrawDriver {
     pub(crate) sync_counter: xcb::sync::Counter,
     pub(crate) sync_value: xcb::sync::Int64,
+}
+
+pub(crate) trait WmSmoothRedrawDriver {
+    fn new_driver(&mut self, wid: WindowId) -> Result<()>;
+
+    /// Does nothing if no driver was created for the window
+    fn drop_driver(&mut self, wid: WindowId) -> Result<()>;
+
+    fn lock(&mut self, wid: WindowId) -> Result<()>;
+    fn unlock(&mut self, wid: WindowId) -> Result<()>;
+
+    /// Must be called on sync request event
+    fn update_sync_value(&mut self, wid: WindowId, value: i64) -> Result<()>;
 }
 
 pub(crate) struct WindowTextInputDriver {

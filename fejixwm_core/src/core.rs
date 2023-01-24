@@ -65,6 +65,8 @@ pub trait WindowManagerTrait : Sized {
 
     fn new_window(&mut self, info: &WindowInfo) -> Result<()>;
 
+    fn drop_window(&mut self, wid: WindowId) -> Result<()>;
+
     fn run<EventHandlerT : EventHandler>(&mut self);
 
 }
