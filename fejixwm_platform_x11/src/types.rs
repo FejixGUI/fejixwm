@@ -1,9 +1,17 @@
 #![allow(non_snake_case)]
 
-use crate::core::*;
+pub(crate) use crate::core::{
+    *,
+    events::EventHandler
+};
 
-use std::{
+pub(crate) use x11::xlib;
+pub(crate) use xcb;
+
+pub(crate) use std::{
     collections::HashMap,
+    ptr::{null, null_mut},
+    ffi
 };
 
 

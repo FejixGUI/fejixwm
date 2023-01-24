@@ -1,15 +1,4 @@
-use crate::core::{*, errors::{Result, Error}};
 use crate::types::*;
-
-use x11::xlib;
-use xcb;
-
-use std::{
-    collections::HashMap,
-    ptr::{null, null_mut},
-    ffi
-};
-
 
 
 impl WindowManagerTrait for WindowManager {
@@ -25,8 +14,8 @@ impl WindowManagerTrait for WindowManager {
         self.destroy_window(wid)
     }
 
-    fn run<EventHandlerT : events::EventHandler>(&mut self) {
-        todo!()
+    fn run(&mut self, event_handler: impl EventHandler) {
+        self.run_event_loop(event_handler);
     }
 }
 
@@ -264,6 +253,38 @@ impl WindowManager {
 
             // TODO implement graphics APIs
             _ => Err(Error::UnsupportedFeature)
+        }
+    }
+
+
+    fn run_event_loop(&mut self, mut event_handler: impl EventHandler) {
+
+        loop {
+
+            let event = self.connection.wait_for_event();
+
+            if event.is_err() {
+                break;
+            }
+
+            match event.unwrap() {
+                xcb::Event::X(event) => self.handle_x_event(&mut event_handler, event),
+
+                _ => {}
+            }
+
+        }
+
+    }
+
+
+    fn handle_x_event(&mut self, event_handler: &impl EventHandler, event: xcb::x::Event) {
+        match event {
+            xcb::x::Event::ClientMessage(event) => {
+
+            }
+
+            _ => {}
         }
     }
 

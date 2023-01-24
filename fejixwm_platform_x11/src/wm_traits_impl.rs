@@ -1,17 +1,8 @@
-use crate::core::{*, errors::{Result, Error}};
 use crate::types::*;
-
-use x11::xlib;
-use xcb;
-
-use std::{
-    collections::HashMap,
-    ptr::{null, null_mut},
-    ffi
-};
 
 
 mod _impl_wm_smooth_redraw_driver {
+    
     use super::*;
 
     impl WmSmoothRedrawDriver for WindowManager {
