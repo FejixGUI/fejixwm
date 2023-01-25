@@ -1,9 +1,6 @@
 #![allow(non_snake_case)]
 
-pub(crate) use crate::core::{
-    *,
-    events::EventHandler
-};
+pub(crate) use crate::core::*;
 
 pub(crate) use x11::xlib;
 pub(crate) use xcb;
@@ -16,13 +13,15 @@ pub(crate) use std::{
 
 
 /// Applications rarely have more than 4 windows.
-pub type WindowStorage<T> = HashMap<core::WindowId, T>;
+pub type WindowStorage<T> = HashMap<WindowId, T>;
 
 pub(crate) type WindowHandle = xcb::x::Window;
 
 
 pub struct WindowManager {
     pub(crate) name: String,
+    pub(crate) should_stop: bool,
+    pub(crate) event_handler: Option<Box<events::DynEventHandler<Self>>>,
 
     pub(crate) connection: xcb::Connection,
     pub(crate) atoms: XAtoms,

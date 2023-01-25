@@ -24,7 +24,13 @@ pub enum WindowEvent {
 }
 
 
-pub trait EventHandler : FnMut(AnyEvent) {}
+pub trait EventHandler<WindowManagerT> : 'static + FnMut(&mut WindowManagerT, AnyEvent) {}
+
+/// `Box<..>` type parameter
+pub type DynEventHandler<WindowManagerT> = dyn FnMut(&mut WindowManagerT, AnyEvent);
+
+// Magic outside Hogwarts!
+impl<WmT, FnT> EventHandler<WmT> for FnT where FnT: 'static + FnMut(&mut WmT, AnyEvent) {}
 
 
 impl std::fmt::Display for AnyEvent {

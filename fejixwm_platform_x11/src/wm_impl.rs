@@ -14,8 +14,20 @@ impl WindowManagerTrait for WindowManager {
         self.destroy_window(wid)
     }
 
-    fn run(&mut self, event_handler: impl EventHandler) {
-        self.run_event_loop(event_handler);
+    fn run<F: events::EventHandler<Self>>(&mut self, event_handler: F) {
+        
+        self.should_stop = false;
+        self.event_handler = Some(Box::new(event_handler));
+        
+        while !self.should_stop {
+            self.next_event();
+        }
+
+        self.event_handler = None;
+    }
+
+    fn stop(&mut self) {
+        self.should_stop = true;
     }
 }
 
@@ -36,7 +48,9 @@ impl WindowManager {
             .or_else(|_| Err(Error::PlatformApiFailed("cannot get X atoms")))?;
 
         Ok(Self {
-            name: info.name.clone(),
+            name: info.name.to_string(),
+            should_stop: false,
+            event_handler: None,
 
             connection,
             default_screen_number,
@@ -63,16 +77,27 @@ impl WindowManager {
     }
 
 
-    fn unregister_window(&mut self, wid: &WindowId) {
+    fn unregister_window(&mut self, wid: WindowId) {
         self.window_handles.remove(&wid);
     }
 
 
-    pub(crate) fn get_window_handle(&self, wid: &WindowId) -> Result<xcb::x::Window> {
+    pub(crate) fn get_window_handle(&self, wid: WindowId) -> Result<xcb::x::Window> {
         let xwindow = self.window_handles.get(&wid)
-            .ok_or_else(|| Error::InvalidArgument)?;
+            .ok_or_else(|| Error::InternalLogicFailed)?;
 
         Ok(xwindow.clone())
+    }
+
+
+    pub(crate) fn get_window_id(&self, xwindow: xcb::x::Window) -> Result<WindowId> {
+        for (wid, xwin) in &self.window_handles {
+            if xwin == &xwindow {
+                return Ok(*wid);
+            }
+        }
+
+        return Err(Error::InternalLogicFailed)
     }
 
 
@@ -107,7 +132,7 @@ impl WindowManager {
     }
 
 
-    pub(crate) fn create_window(&mut self, info: &WindowInfo) -> Result<()> {
+    pub fn create_window(&mut self, info: &WindowInfo) -> Result<()> {
         let visual_info: WindowVisualInfo = self.create_visual_info(info)?;
         let wid = info.id;
 
@@ -117,14 +142,16 @@ impl WindowManager {
         self.init_window_drivers(wid, info.flags)?;
         self.create_window_canvas(wid, info)?;
 
+        // TODO set window class
+
         Ok(())
     }
 
 
-    pub(crate) fn destroy_window(&mut self, wid: WindowId) -> Result<()> {
+    pub fn destroy_window(&mut self, wid: WindowId) -> Result<()> {
         self.destroy_window_drivers(wid)?;
         self.destroy_xwindow(wid)?;
-        self.unregister_window(&wid);
+        self.unregister_window(wid);
         Ok(())
     }
 
@@ -192,7 +219,7 @@ impl WindowManager {
 
     
     fn set_xwindow_protocols(&self, wid: WindowId, window_info: &core::WindowInfo) -> Result<()> {
-        let xwindow = self.get_window_handle(&wid)?;
+        let xwindow = self.get_window_handle(wid)?;
         let protocols = self.create_xwindow_protocols_list(window_info);
 
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {
@@ -256,37 +283,6 @@ impl WindowManager {
         }
     }
 
-
-    fn run_event_loop(&mut self, mut event_handler: impl EventHandler) {
-
-        loop {
-
-            let event = self.connection.wait_for_event();
-
-            if event.is_err() {
-                break;
-            }
-
-            match event.unwrap() {
-                xcb::Event::X(event) => self.handle_x_event(&mut event_handler, event),
-
-                _ => {}
-            }
-
-        }
-
-    }
-
-
-    fn handle_x_event(&mut self, event_handler: &impl EventHandler, event: xcb::x::Event) {
-        match event {
-            xcb::x::Event::ClientMessage(event) => {
-
-            }
-
-            _ => {}
-        }
-    }
 
 }
 

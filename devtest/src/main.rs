@@ -15,11 +15,11 @@ fn main() {
 
 fn run() -> Result<()> {
 
-    let wm_info = WindowManagerInfo { name: "com.example.helloworld".to_string() };
+    let wm_info = WindowManagerInfo { name: "com.example.helloworld" };
 
     let window_info = WindowInfo {
         id: WID,
-        flags: WindowFlags::empty() | WindowFlags::SMOOTH_REDRAW | WindowFlags::TEXT_INPUT,
+        flags: WindowFlags::empty(),
         size: PixelSize::new(800, 600),
         canvas_info: CanvasInfo::None
     };
@@ -28,7 +28,16 @@ fn run() -> Result<()> {
     wm.new_window(&window_info)?;
     wm.set_visible(WID, true)?;
     wm.set_title(WID, "Привіт Rust!")?;
-    std::thread::sleep(std::time::Duration::from_millis(3000));
+    
+    wm.run(|wm: &mut WindowManager, event: events::AnyEvent| match event {
+        events::AnyEvent::WindowEvent { event, .. } => match event {
+            events::WindowEvent::Close => {
+                wm.stop();
+            }
+            _ => {}
+        }
+        _ => {}
+    });
 
     Ok(())
 }

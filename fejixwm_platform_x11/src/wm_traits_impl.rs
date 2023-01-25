@@ -77,7 +77,7 @@ mod _impl_wm_smooth_redraw_driver {
 
             self.connection.send_and_check_request(&xcb::x::ChangeProperty {
                 mode: xcb::x::PropMode::Replace,
-                window: self.get_window_handle(&wid)?,
+                window: self.get_window_handle(wid)?,
                 property: self.atoms._NET_WM_SYNC_REQUEST_COUNTER,
                 r#type: xcb::x::ATOM_CARDINAL,
                 data: &[driver.sync_counter.resource_id()]
@@ -145,7 +145,7 @@ mod _impl_wm_text_input_driver {
         fn create_text_input_driver(&self, wid: WindowId) -> Result<WindowTextInputDriver> {
             use xcb::Xid;
 
-            let xwindow = self.get_window_handle(&wid)?;
+            let xwindow = self.get_window_handle(wid)?;
 
             let input_style = ffi::CString::new(xlib::XNInputStyle)
                 .or_else(|_| Err(Error::InternalLogicFailed))?;
@@ -198,12 +198,12 @@ impl interface::window_manip::WmVisibilityController for WindowManager {
     fn set_visible(&mut self, wid: WindowId, visible: bool) -> Result<()> {
         if visible {
             self.connection.send_and_check_request(&xcb::x::MapWindow {
-                window: self.get_window_handle(&wid)?
+                window: self.get_window_handle(wid)?
             })
             .or_else(|_| Err(Error::PlatformApiFailed("cannot map window")))?
         } else {
             self.connection.send_and_check_request(&xcb::x::UnmapWindow {
-                window: self.get_window_handle(&wid)?
+                window: self.get_window_handle(wid)?
             })
             .or_else(|_| Err(Error::PlatformApiFailed("cannot unmap window")))?
         }
@@ -217,7 +217,7 @@ impl interface::window_manip::WmTitleController for WindowManager {
     fn set_title(&mut self, wid: WindowId, title: &str) -> Result<()> {
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {
             mode: xcb::x::PropMode::Replace,
-            window: self.get_window_handle(&wid)?,
+            window: self.get_window_handle(wid)?,
             property: self.atoms._NET_WM_NAME,
             r#type: self.atoms.UTF8_STRING,
             data: title.as_bytes()
