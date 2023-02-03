@@ -6,3 +6,11 @@ members = [
     'fejixwm_platform_x11',
     'fejixwm_capi',
 ]
+
+
+[profile.devtest]
+inherits = "release"
+panic = 'abort'
+strip = true
+lto = true
+codegen-units = 1

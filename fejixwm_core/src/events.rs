@@ -26,10 +26,10 @@ pub enum WindowEvent {
 
 pub trait EventHandler<WindowManagerT> : 'static + FnMut(&mut WindowManagerT, AnyEvent) {}
 
-/// `Box<..>` type parameter
+/// A better way to write `dyn EventHandler<..>`. This can be used a `Box<..>` type parameter.
 pub type DynEventHandler<WindowManagerT> = dyn FnMut(&mut WindowManagerT, AnyEvent);
 
-// Magic outside Hogwarts!
+// Implement EventHandler for all FnMut that seem like event handlers
 impl<WmT, FnT> EventHandler<WmT> for FnT where FnT: 'static + FnMut(&mut WmT, AnyEvent) {}
 
 

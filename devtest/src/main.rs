@@ -3,7 +3,7 @@
 extern crate fejixwm;
 use fejixwm::{*, interface::{window_manip::*}};
 
-const WID: WindowId = 123;
+const WID: WindowId = 0;
 
 fn main() {
     let result = run();
@@ -13,7 +13,7 @@ fn main() {
 }
 
 
-fn run() -> Result<()> {
+fn run() -> fejixwm::errors::Result<()> {
 
     let wm_info = WindowManagerInfo { name: "com.example.helloworld" };
 

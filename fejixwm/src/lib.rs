@@ -4,9 +4,10 @@ pub extern crate fejixwm_core;
 
 pub use fejixwm_core::{
     self as core,
-    *,
+    errors,
     events,
     interface,
+    *,
 };
 
 #[cfg(not(feature = "_platform_selected"))]

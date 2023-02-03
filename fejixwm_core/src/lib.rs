@@ -37,12 +37,9 @@ This crate contains platform-independent code of FejixWM.
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-pub mod core;
+mod core;
 pub mod errors;
 pub mod events;
 pub mod interface;
 
-pub use self::{
-    core::*,
-    errors::{Result, Error}
-};
+pub use self::core::*;

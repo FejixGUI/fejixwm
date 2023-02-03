@@ -1,6 +1,9 @@
 #![allow(non_snake_case)]
 
-pub(crate) use crate::core::*;
+pub(crate) use crate::core::{
+    errors::*,
+    *
+};
 
 pub(crate) use x11::xlib;
 pub(crate) use xcb;
@@ -51,7 +54,7 @@ xcb::atoms_struct! {
 
 
 pub(crate) struct WindowState {
-    pub(crate) size: core::PixelSize,
+    pub(crate) size: PixelSize,
 }
 
 pub(crate) struct WindowVisualInfo {

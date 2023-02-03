@@ -10,8 +10,8 @@ extern crate xcb;
 
 pub(crate) mod types;
 pub(crate) mod wm_impl;
-pub(crate) mod wm_events_impl;
-pub(crate) mod wm_traits_impl;
+pub(crate) mod wm_impl_events;
+pub(crate) mod wm_impl_traits;
 
 
 pub use types::*;

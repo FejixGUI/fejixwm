@@ -1,4 +1,7 @@
-use crate::*;
+use crate::{
+    errors::Result,
+    *,
+};
 
 
 pub trait WmTitleController {

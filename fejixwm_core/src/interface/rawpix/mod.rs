@@ -1,6 +1,9 @@
 #![allow(non_camel_case_types)]
 
-use crate::*;
+use crate::{
+    errors::Result,
+    *
+};
 
 
 /// All components are specified in little-endian order.

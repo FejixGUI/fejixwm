@@ -205,12 +205,12 @@ impl WindowManager {
     }
 
 
-    fn create_xwindow_protocols_list(&self, window_info: &core::WindowInfo) -> Vec<xcb::x::Atom> {
+    fn create_xwindow_protocols_list(&self, window_info: &WindowInfo) -> Vec<xcb::x::Atom> {
         let mut protocols = vec![
             self.atoms.WM_DELETE_WINDOW
         ];
 
-        if window_info.flags.contains(core::WindowFlags::SMOOTH_REDRAW) {
+        if window_info.flags.contains(WindowFlags::SMOOTH_REDRAW) {
             protocols.push(self.atoms._NET_WM_SYNC_REQUEST);
         }
 
@@ -218,7 +218,7 @@ impl WindowManager {
     }
 
     
-    fn set_xwindow_protocols(&self, wid: WindowId, window_info: &core::WindowInfo) -> Result<()> {
+    fn set_xwindow_protocols(&self, wid: WindowId, window_info: &WindowInfo) -> Result<()> {
         let xwindow = self.get_window_handle(wid)?;
         let protocols = self.create_xwindow_protocols_list(window_info);
 
