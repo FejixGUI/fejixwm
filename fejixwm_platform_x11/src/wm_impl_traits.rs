@@ -148,13 +148,13 @@ mod _impl_wm_text_input_driver {
             let xwindow = self.get_window_handle(wid)?;
 
             let input_style = ffi::CString::new(xlib::XNInputStyle)
-                .or_else(|_| Err(Error::InternalLogicFailed))?;
+                .or_else(|_| Err(Error::InternalFailure))?;
 
             let client_window = ffi::CString::new(xlib::XNClientWindow)
-                .or_else(|_| Err(Error::InternalLogicFailed))?;
+                .or_else(|_| Err(Error::InternalFailure))?;
 
             let focus_window = ffi::CString::new(xlib::XNFocusWindow)
-                .or_else(|_| Err(Error::InternalLogicFailed))?;
+                .or_else(|_| Err(Error::InternalFailure))?;
 
             let xic = unsafe {
                 xlib::XCreateIC(

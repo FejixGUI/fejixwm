@@ -33,9 +33,6 @@ dependencies = [
 [[package]]
 name = "fejixwm_core"
 version = "0.0.1"
-dependencies = [
- "bitflags",
-]
 
 [[package]]
 name = "fejixwm_platform_x11"

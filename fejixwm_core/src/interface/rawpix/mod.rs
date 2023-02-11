@@ -5,6 +5,8 @@ use crate::{
     *
 };
 
+use std::rc::Rc;
+
 
 /// All components are specified in little-endian order.
 /// Not all formats may be supported (typically, only a few are implemented by a platform).
@@ -59,14 +61,15 @@ pub struct Canvas {
     pub padding: usize,
 
     /// Pixel data. Contains `height * (width * size_of_pixel(format) + padding)` bytes.
-    pub pixels: *mut u8,
+    pub pixels: Rc<Box<[u8]>>,
 }
 
 
-pub trait CanvasManager {
+pub trait WmCanvasController {
 
     fn get_canvas(&self, wid: core::WindowId) -> Option<Canvas>;
 
+    /// Copies the back buffer to the front buffer
     fn present(&self, wid: core::WindowId) -> Result<()>;
 
 }

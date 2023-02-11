@@ -8,10 +8,11 @@ pub(crate) use fejixwm_core as core;
 extern crate x11;
 extern crate xcb;
 
-pub(crate) mod types;
-pub(crate) mod wm_impl;
-pub(crate) mod wm_impl_events;
-pub(crate) mod wm_impl_traits;
+mod types;
+mod wm_impl;
+mod wm_impl_events;
+mod wm_impl_traits;
+mod interface;
 
 
 pub use types::*;

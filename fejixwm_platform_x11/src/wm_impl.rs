@@ -61,6 +61,9 @@ impl WindowManager {
             window_state_cache: WindowStorage::new(),
             smooth_redraw_drivers: WindowStorage::new(),
             text_input_drivers: WindowStorage::new(),
+
+            #[cfg(feature = "graphics_rawpix")]
+            rawpix_canvases: WindowStorage::new(),
         })
     }
 
@@ -84,7 +87,7 @@ impl WindowManager {
 
     pub(crate) fn get_window_handle(&self, wid: WindowId) -> Result<xcb::x::Window> {
         let xwindow = self.window_handles.get(&wid)
-            .ok_or_else(|| Error::InternalLogicFailed)?;
+            .ok_or_else(|| Error::InternalFailure)?;
 
         Ok(xwindow.clone())
     }
@@ -97,7 +100,7 @@ impl WindowManager {
             }
         }
 
-        return Err(Error::InternalLogicFailed)
+        return Err(Error::InternalFailure)
     }
 
 
@@ -172,8 +175,7 @@ impl WindowManager {
             height: info.size.height as u16,
             border_width: 0,
             
-            // TODO Is screen depth important?
-            depth: xcb::x::COPY_FROM_PARENT as u8,
+            depth: visual_info.color_depth,
             visual: visual_info.visualid,
             value_list: &[
                 xcb::x::Cw::BackPixel(default_screen.black_pixel()),
@@ -260,6 +262,7 @@ impl WindowManager {
         WindowVisualInfo {
             visualid: screen.root_visual(),
             colormap: screen.default_colormap(),
+            color_depth: screen.root_depth(),
         }
     }
 
@@ -267,6 +270,11 @@ impl WindowManager {
     fn create_visual_info(&mut self, window_info: &WindowInfo) -> Result<WindowVisualInfo> {
         match window_info.canvas_info {
             CanvasInfo::None => Ok(self.get_default_visual_info()),
+
+            CanvasInfo::RawpixInfo(canvas_info) => {
+                use crate::interface::rawpix::*;
+                return self.new_visual_info(canvas_info);
+            }
 
             // TODO implement graphics APIs
             _ => Err(Error::UnsupportedFeature),
@@ -281,6 +289,11 @@ impl WindowManager {
             // TODO implement graphics APIs
             _ => Err(Error::UnsupportedFeature)
         }
+    }
+
+
+    fn destroy_window_canvas(&mut self, wid: WindowId) -> Result<()> {
+        Ok(())
     }
 
 
