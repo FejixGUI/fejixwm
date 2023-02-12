@@ -4,15 +4,15 @@ use crate::{
 };
 
 
-pub trait WmTitleController {
+pub trait TitleController : ShellClientTrait {
 
-    fn set_title(&mut self, wid: WindowId, title: &str) -> Result<()>;
+    fn set_title(&mut self, window: &mut Self::Window, title: &str) -> Result<()>;
 
 }
 
 
-pub trait WmVisibilityController {
+pub trait VisibilityController : ShellClientTrait {
 
-    fn set_visible(&mut self, wid: WindowId, visible: bool) -> Result<()>;
+    fn set_visible(&mut self, window: &mut Self::Window, visible: bool) -> Result<()>;
 
 }

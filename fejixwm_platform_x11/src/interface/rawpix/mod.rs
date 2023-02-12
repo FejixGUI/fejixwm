@@ -17,9 +17,9 @@ pub(crate) struct CanvasData {
 
 pub(crate) trait WmRawpixCanvasController {
 
-    fn new_visual_info(&self, info: &core::interface::rawpix::CanvasInfo) -> Result<WindowVisualInfo>;
+    fn new_visual_info(&self, info: &core::interface::rawpix::RawpixInfo) -> Result<WindowVisualInfo>;
 
-    fn new_canvas(&mut self, wid: WindowId, info: &core::interface::rawpix::CanvasInfo) -> Result<()>;
+    fn new_canvas(&mut self, wid: WindowId, info: &core::interface::rawpix::RawpixInfo) -> Result<()>;
 
     fn drop_canvas(&mut self, wid: WindowId);
 
@@ -34,11 +34,11 @@ impl WmRawpixCanvasController for WindowManager {
         todo!()
     }
 
-    fn new_canvas(&mut self, wid: WindowId, info: &core::interface::rawpix::CanvasInfo) -> Result<()> {
+    fn new_canvas(&mut self, wid: WindowId, info: &core::interface::rawpix::RawpixInfo) -> Result<()> {
         todo!()
     }
 
-    fn new_visual_info(&self, info: &core::interface::rawpix::CanvasInfo) -> Result<WindowVisualInfo> {
+    fn new_visual_info(&self, info: &core::interface::rawpix::RawpixInfo) -> Result<WindowVisualInfo> {
         todo!()
     }
 

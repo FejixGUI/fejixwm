@@ -5,12 +5,14 @@ use crate::{
     *
 };
 
-use std::rc::Rc;
+use std::{
+    rc::Rc,
+    cell::RefCell,
+};
 
 
 /// All components are specified in little-endian order.
 /// Not all formats may be supported (typically, only a few are implemented by a platform).
-/// Size of a pixel of a specific format can be determined by [size_of_pixel].
 #[derive(Clone)]
 pub enum PixelFormat {
     /// Red 8 bits, Green 8 bits, Blue 8 bits (packed)
@@ -36,40 +38,48 @@ pub enum PixelFormat {
 }
 
 
-pub fn size_of_pixel(format: PixelFormat) -> usize {
-    match format {
-        PixelFormat::RGB_888 | PixelFormat::BGR_888 => 3,
-        _ => 4
-    }
-}
-
-
 #[derive(Clone)]
-pub struct CanvasInfo {
+pub struct RawpixInfo {
     
     format: PixelFormat
 
 }
 
 
+/// Access to the pixel data is thread-unsafe
 #[derive(Clone)]
-pub struct Canvas {
+pub struct RawpixData {
 
     pub format: PixelFormat,
 
     /// Number of padding bytes added after each row.
     pub padding: usize,
 
-    /// Pixel data. Contains `height * (width * size_of_pixel(format) + padding)` bytes.
-    pub pixels: Rc<Box<[u8]>>,
+    /// Pixel data. Contains `height * (width * format.size_of_pixel() + padding)` bytes.
+    pub pixels: Rc<RefCell<Box<[u8]>>>,
+
 }
 
 
-pub trait WmCanvasController {
+pub trait RawpixCanvasTrait : CanvasTrait {
 
-    fn get_canvas(&self, wid: core::WindowId) -> Option<Canvas>;
+    fn get_raw_pixel_data(&self) -> RawpixData;
 
     /// Copies the back buffer to the front buffer
-    fn present(&self, wid: core::WindowId) -> Result<()>;
+    fn present(
+        &self,
+        client: &Self::ShellClient,
+        window: &mut <Self::ShellClient as ShellClientTrait>::Window
+    ) -> Result<()>;
 
+}
+
+
+impl PixelFormat {
+    pub fn size_of_pixel(&self) -> usize {
+        match self {
+            Self::RGB_888 | Self::BGR_888 => 3,
+            _ => 4
+        }
+    }
 }

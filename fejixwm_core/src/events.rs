@@ -30,7 +30,7 @@ impl std::fmt::Display for Event {
         match self {
             Self::Close => write!(f, "closed"),
             Self::Resize { new_size } => write!(f, "resized to {new_size}"),
-            Self::UserEvent { data } => write!(f, "user-defined event")
+            Self::UserEvent { .. } => write!(f, "user-defined event")
         }
     }
 }

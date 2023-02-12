@@ -1,7 +1,12 @@
-use crate::*;
+use crate::{
+    errors::Result,
+    *
+};
+
+use libc::c_void;
 
 
-pub struct CanvasInfo {
+pub struct OpenglInfo {
     pub major_version: u8,
     pub minor_version: u8,
     pub compatibility_flag: bool,
@@ -20,6 +25,36 @@ pub struct CanvasInfo {
 }
 
 
-pub struct Canvas {
+pub trait OpenglCanvasTrait : CanvasTrait {
+
+    fn make_current(
+        &self,
+        client: &Self::ShellClient,
+        window: &mut <Self::ShellClient as ShellClientTrait>::Window
+    ) -> Result<()>;
+
+    /// Returns `GraphicsApiFailed` if the context is not current
+    fn swap_buffers(
+        &self,
+        client: &Self::ShellClient,
+        window: &mut <Self::ShellClient as ShellClientTrait>::Window
+    ) -> Result<()>;
+
+    /// Returns `GraphicsApiFailed` if the context is not current.
+    /// Returns `InvalidArgument` if the function does not exist.
+    fn load_function(
+        &self,
+        client: &Self::ShellClient,
+        window: &<Self::ShellClient as ShellClientTrait>::Window,
+        function_name: &str
+    ) -> Result<*const c_void>;
+
+    /// Returns `GraphicsApiFailed` if the context is not current.
+    fn is_extension_supported(
+        &self,
+        client: &Self::ShellClient,
+        window: &<Self::ShellClient as ShellClientTrait>::Window,
+        extension_name: &str
+    ) -> Result<bool>;
 
 }

@@ -12,6 +12,15 @@ pub struct PixelSize {
 
 
 #[derive(Clone)]
+pub enum ShellSubsystem {
+    MouseInput,
+    KeyboardInput,
+    TextInput,
+    SysRedraw,
+}
+
+
+#[derive(Clone)]
 pub struct ShellClientInfo<'a> {
     pub id: &'a str,
     pub subsystems: &'a [ShellSubsystem],
@@ -21,15 +30,6 @@ pub struct ShellClientInfo<'a> {
 #[derive(Clone)]
 pub struct WindowInfo {
     size: PixelSize,
-}
-
-
-#[derive(Clone)]
-pub enum ShellSubsystem {
-    MouseInput,
-    KeyboardInput,
-    TextInput,
-    SysRedraw,
 }
 
 
@@ -53,7 +53,7 @@ pub trait ShellClientTrait : Sized {
     fn is_subsystem_available(&self, subsystem: ShellSubsystem) -> bool;
     fn is_subsystem_enabled(&self, window: &Self::Window, subsystem: ShellSubsystem) -> bool;
     fn is_subsystem_forced(&self, window: &Self::Window, subsystem: ShellSubsystem) -> bool;
-    fn set_subsystem_enabled(&self, window: &Self::Window, subsystem: ShellSubsystem, enabled: bool) -> Result<()>;
+    fn set_subsystem_enabled(&self, window: &mut Self::Window, subsystem: ShellSubsystem, enabled: bool) -> Result<()>;
 
 
 }
