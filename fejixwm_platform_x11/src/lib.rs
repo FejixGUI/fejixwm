@@ -9,9 +9,9 @@ extern crate x11;
 extern crate xcb;
 
 mod types;
-mod wm_impl;
-mod wm_impl_events;
-mod wm_impl_traits;
+mod shell_client_impl;
+mod events_impl;
+mod subsystems_impl;
 mod interface;
 
 

@@ -15,34 +15,31 @@ pub(crate) use std::{
 };
 
 
-/// Applications rarely have more than 4 windows.
-pub type WindowStorage<T> = HashMap<WindowId, T>;
-
-pub(crate) type WindowHandle = xcb::x::Window;
+pub type ShellClient = X11ShellClient;
+pub type Window = X11Window;
 
 
-pub struct WindowManager {
-    pub(crate) name: String,
-    pub(crate) should_stop: bool,
-    pub(crate) event_handler: Option<Box<dyn events::EventHandler<Self>>>,
+pub(crate) type X11WindowHandle = xcb::x::Window;
 
-    pub(crate) connection: xcb::Connection,
-    pub(crate) atoms: XAtoms,
-    pub(crate) default_screen_number: i32,
-    pub(crate) input_method: x11::xlib::XIM,
-    
-    pub(crate) window_handles: WindowStorage<WindowHandle>,
-    pub(crate) window_state_cache: WindowStorage<WindowState>, // TODO window state cache
-    pub(crate) smooth_redraw_drivers: WindowStorage<WmSysredrawData>,
-    pub(crate) text_input_drivers: WindowStorage<WmTextInputData>,
+pub(crate) struct X11ShellClient {
+    pub connection: xcb::Connection,
+    pub xdisplay: *mut xlib::Display,
+    pub atoms: X11Atoms,
+    pub default_screen_number: i32,
+    pub class_name: String,
 
-    #[cfg(feature = "graphics_rawpix")]
-    pub(crate) rawpix_canvases: WindowStorage<crate::interface::rawpix::CanvasData>,
+    pub text_input_subsystem: Option<X11GlobalTextInputSubsystem>,
+}
+
+pub(crate) struct X11Window {
+    pub handle: X11WindowHandle,
+    pub text_input: Option<X11TextInputSubsystem>,
+    pub sys_redraw: Option<X11SysRedrawSubsystem>
 }
 
 
 xcb::atoms_struct! {
-    pub(crate) struct XAtoms {
+    pub(crate) struct X11Atoms {
         pub WM_PROTOCOLS => b"WM_PROTOCOLS",
         pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
 
@@ -56,67 +53,28 @@ xcb::atoms_struct! {
 
 
 
-pub(crate) struct WindowState {
+pub(crate) struct X11WindowState {
     pub size: PixelSize,
 }
 
-pub(crate) struct WindowVisualInfo {
+pub(crate) struct X11WindowVisualInfo {
     pub visualid: xcb::x::Visualid,
     pub colormap: xcb::x::Colormap,
     pub color_depth: u8,
 }
 
 
-pub(crate) struct WmSysredrawData {
+pub(crate) struct X11SysRedrawSubsystem {
     pub sync_counter: xcb::sync::Counter,
     pub sync_value: xcb::sync::Int64,
 }
 
-pub(crate) struct WmTextInputData {
-    pub input_context: x11::xlib::XIC,
+pub(crate) struct X11GlobalTextInputSubsystem {
+    pub input_method: xlib::XIM,
+}
+
+pub(crate) struct X11TextInputSubsystem {
+    pub input_context: xlib::XIC,
     pub input: Vec<u8>,
     pub input_finished: bool,
-}
-
-pub(crate) trait WmSubsystemDriver<SubsystemT: WmSubsystemTrait> {
-    type SubsystemData;
-}
-
-
-pub(crate) trait WmSmoothRedrawDriver : WmSubsystemDriver<subsystems::WmSysredrawSubsystem> {
-
-
-
-    fn new_driver(&mut self, wid: WindowId) -> Result<()>;
-
-    /// Does nothing if no driver was created for the window
-    fn drop_driver(&mut self, wid: WindowId) -> Result<()>;
-
-    fn lock(&mut self, wid: WindowId) -> Result<()>;
-    fn unlock(&mut self, wid: WindowId) -> Result<()>;
-
-    /// Must be called on sync request event
-    fn update_sync_value(&mut self, wid: WindowId, value: i64) -> Result<()>;
-}
-
-
-
-
-pub(crate) trait WmTextInputDriver {
-    fn new_driver(&mut self, wid: WindowId) -> Result<()>;
-
-    /// Does nothing if no driver was created for the window
-    fn drop_driver(&mut self, wid: WindowId) -> Result<()>;
-
-    // TODO Finish text input driver interface
-
-    // fn handle_key_event(&self, event: &xcb::x::KeyPressEvent) -> Result<()> {
-    //     // TODO
-    //     // let event = xlib::XKeyPressedEvent {
-    //     //     type_ = xlib::KeyPress,
-    //     //     display = self.
-    //     // }
-
-    //     Ok(())
-    // }
 }

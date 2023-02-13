@@ -9,14 +9,13 @@ typedef const char * fj_string_t;
 typedef uint32_t fj_bool_t;
 typedef uint32_t fj_status_t;
 
-typedef void * fj_wm_t;
-typedef uint32_t fj_wid_t;
+typedef void * fj_shell_client_t;
+typedef void * fj_window_t;
 
-typedef uint32_t fj_window_flags_t;
 typedef uint32_t fj_event_type_t;
 
-struct fj_wm_info;
-typedef struct fj_wm_info fj_wm_info_t;
+struct fj_shell_client_info;
+typedef struct fj_shell_client_info fj_shell_client_info_t;
 
 struct fj_window_info;
 typedef struct fj_window_info fj_window_info_t;
@@ -30,7 +29,11 @@ typedef struct fj_resize_event fj_resize_event_t;
 struct fj_event;
 typedef struct fj_event fj_event_t;
 
-typedef void (* fj_event_handler_t)(fj_event_t * event);
+typedef void (* fj_event_handler_t)(
+    fj_shell_client_t * shell_client,
+    fj_window_t * window,
+    fj_event_t * event
+);
 
 
 enum fj_status {
@@ -62,7 +65,6 @@ struct fj_resize_event {
 
 struct fj_event {
     fj_event_type_t event_type;
-    fj_wid_t window_id;
 
     union {
         fj_resize_event_t resize_event;
@@ -70,16 +72,13 @@ struct fj_event {
 };
 
 
-struct fj_wm_info {
+struct fj_shell_client_info {
     fj_string_t name;
-    fj_event_handler_t event_handler;
 };
 
 
 struct fj_window_info {
     fj_pixel_size_t size;
-    fj_window_flags_t flags;
-    fj_wid_t id;
 };
 
 

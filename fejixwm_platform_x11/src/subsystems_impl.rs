@@ -1,7 +1,32 @@
 use crate::types::*;
 
 
-mod _impl_wm_smooth_redraw_driver {
+impl X11GlobalTextInputSubsystem {
+    pub fn new(client: &X11ShellClient) -> Result<Self> {
+        let im = unsafe {
+            xlib::XOpenIM(client.xdisplay, null_mut(), null_mut(), null_mut())
+        };
+        
+        if im.is_null() {
+            return Err(Error::PlatformApiFailed("cannot create input method"));
+        }
+
+        Ok(Self {
+            input_method: im
+        })
+    }
+}
+
+impl Drop for X11GlobalTextInputSubsystem {
+    fn drop(&mut self) {
+        unsafe {
+            xlib::XCloseIM(self.input_method);
+        }
+    }
+}
+
+
+/* mod _impl_wm_smooth_redraw_driver {
     
     use super::*;
 
@@ -224,4 +249,4 @@ impl interface::window_manip::WmTitleController for WindowManager {
         }) 
         .or_else(|_| Err(Error::PlatformApiFailed("failed to set title")))      
     }
-}
+} */
