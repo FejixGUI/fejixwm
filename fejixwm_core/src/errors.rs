@@ -15,9 +15,11 @@ pub enum Error {
     /// An argument passed to a function is invalid
     InvalidArgument,
 
-    SubsystemUnavailable,
+    SubsystemNotAvailable,
 
     SubsystemForced,
+
+    FeatureNotCompiled,
 }
 
 
@@ -28,8 +30,9 @@ impl std::fmt::Display for Error {
             Self::GraphicsApiFailed(msg) => write!(f, "graphics API failed ({msg})"),
             Self::InternalFailure => write!(f, "internal logic failed"),
             Self::InvalidArgument => write!(f, "invalid argument"),
-            Self::SubsystemUnavailable => write!(f, "the subsystem is unavailable"),
+            Self::SubsystemNotAvailable => write!(f, "the subsystem is not available"),
             Self::SubsystemForced => write!(f, "the subsystem state is forced"),
+            Self::FeatureNotCompiled => write!(f, "feature was not compiled"),
         }
     }
 }

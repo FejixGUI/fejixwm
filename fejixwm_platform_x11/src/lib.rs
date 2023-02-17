@@ -10,7 +10,6 @@ extern crate xcb;
 
 mod types;
 mod shell_client_impl;
-mod events_impl;
 mod subsystems_impl;
 mod interface;
 
