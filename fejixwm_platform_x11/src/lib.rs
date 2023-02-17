@@ -11,7 +11,7 @@ extern crate xcb;
 mod types;
 mod shell_client_impl;
 mod subsystems_impl;
-mod interface;
+pub mod implementation;
 
 
 pub use types::*;

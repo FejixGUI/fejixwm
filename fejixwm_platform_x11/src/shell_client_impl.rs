@@ -202,7 +202,9 @@ impl X11ShellClient {
 
     fn destroy_window_subsystems(&self, window: &mut X11Window) -> Result<()> {
         for subsystem in ShellSubsystem::list() {
-            self.disable_subsystem(window, subsystem.clone())?;
+            if !self.is_subsystem_forced(window, subsystem.clone()) {
+                self.disable_subsystem(window, subsystem.clone())?;
+            }
         }   
 
         Ok(())
