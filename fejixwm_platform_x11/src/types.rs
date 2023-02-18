@@ -2,6 +2,9 @@
 
 pub(crate) use crate::core::{
     errors::*,
+    events::{
+        EventHandler, EventOutcome, Event
+    },
     *
 };
 
@@ -10,7 +13,8 @@ pub(crate) use xcb;
 
 pub(crate) use std::{
     ptr::{null, null_mut},
-    ffi
+    ffi,
+    any::Any,
 };
 
 
@@ -26,6 +30,9 @@ pub struct X11ShellClient {
     pub(crate) atoms: X11Atoms,
     pub(crate) default_screen_number: i32,
     pub(crate) class_name: String,
+
+    /// Passed to X11 functions that take a window handle but have no practical reason for doing so
+    pub(crate) fake_window_handle: X11WindowHandle,
 
     pub(crate) text_input_subsystem: Option<X11GlobalTextInputSubsystem>,
 }
@@ -43,7 +50,6 @@ xcb::atoms_struct! {
     pub(crate) struct X11Atoms {
         pub WM_PROTOCOLS => b"WM_PROTOCOLS",
         pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
-        pub WM_CLASS => b"WM_CLASS",
         pub _NET_WM_PING => b"_NET_WM_PING",
 
         pub _NET_WM_NAME => b"_NET_WM_NAME",

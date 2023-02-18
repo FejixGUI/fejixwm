@@ -1,6 +1,10 @@
 use crate::{
-    errors::Result,
+    errors::*,
     events::EventHandler,
+};
+
+use std::{
+    any::Any
 };
 
 
@@ -54,10 +58,10 @@ pub trait ShellClientTrait : Sized {
 
     /// Processes events and returns.
     /// The exact behavior of the function depends on the values returned from the event handler.
-    fn process_windows<F: EventHandler<Self>>(&self, windows: &[&mut Self::Window], event_handler: F);
+    fn manage_windows<F: EventHandler<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) -> Result<()>;
 
-    /// Generates a special event that interrupts [ShellClientTrait::process_windows] while waiting for events.
-    fn interrupt_waiting(&self);
+    /// Generates a special event that interrupts [ShellClientTrait::manage_windows] while waiting for events.
+    fn wakeup(&self) -> Result<()>;
 
 
     fn get_window_id(&self, window: &Self::Window) -> WindowId;
@@ -86,8 +90,6 @@ pub trait ShellClientTrait : Sized {
     fn check_subsystem_toggleable(&self, window: &Self::Window, subsystem: ShellSubsystem)
         -> Result<()>
     {
-        use crate::errors::Error;
-
         if !self.is_subsystem_available(subsystem) {
             return Err(Error::SubsystemNotAvailable);
         }

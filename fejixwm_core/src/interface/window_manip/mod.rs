@@ -6,13 +6,13 @@ use crate::{
 
 pub trait TitleController : ShellClientTrait {
 
-    fn set_title(&mut self, window: &mut Self::Window, title: &str) -> Result<()>;
+    fn set_title(&self, window: &mut Self::Window, title: &str) -> Result<()>;
 
 }
 
 
 pub trait VisibilityController : ShellClientTrait {
 
-    fn set_visible(&mut self, window: &mut Self::Window, visible: bool) -> Result<()>;
+    fn set_visible(&self, window: &mut Self::Window, visible: bool) -> Result<()>;
 
 }

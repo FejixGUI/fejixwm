@@ -1,8 +1,10 @@
 use crate::{
     *,
-    errors::*,
-    core::interface::null_canvas::NullCanvasTrait
+    errors::*
 };
+
+pub use crate::core::interface::null_canvas::NullCanvasTrait;
+
 
 pub struct NullCanvas;
 

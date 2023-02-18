@@ -36,6 +36,9 @@ fn run() -> fejixwm::errors::Result<()> {
         client.enable_subsystem(&mut window, subsystem.clone())?;
     }
 
+    client.set_visible(&mut window, true)?;
+    client.set_title(&mut window, "Привіт, Rust!")?;
+
     std::thread::sleep(std::time::Duration::from_millis(3000));
 
     canvas.drop(&client, window)?;

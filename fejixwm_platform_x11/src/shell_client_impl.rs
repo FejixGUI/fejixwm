@@ -8,6 +8,7 @@ impl X11ShellClient {
         let xdisplay = connection.get_raw_dpy();
         let atoms = Self::get_atoms(&connection)?;
         let class_name = Self::translate_class_name(info.id)?;
+        let fake_window_handle = Self::create_fake_window_handle(&connection);
 
         let mut myself = Self {
             connection,
@@ -15,11 +16,13 @@ impl X11ShellClient {
             default_screen_number,
             atoms,
             class_name,
+            fake_window_handle,
 
             text_input_subsystem: None,
         };
 
         myself.init_global_subsystems(info.subsystems)?;
+        myself.init_fake_window()?;
 
         Ok(myself)
     }
@@ -27,6 +30,11 @@ impl X11ShellClient {
 
     pub(crate) fn get_default_screen(&self) -> &xcb::x::Screen {
         self.connection.get_setup().roots().nth(self.default_screen_number as usize).unwrap()
+    }
+
+
+    pub(crate) fn get_default_window(&self) -> X11WindowHandle {
+        self.get_default_screen().root()
     }
 
 
@@ -49,6 +57,13 @@ impl X11ShellClient {
     }
 
 
+    fn destroy(&mut self) -> Result<()> {
+        self.destroy_fake_window()?;
+        self.destroy_global_subsystems()?;
+        Ok(())
+    }
+
+
     fn connect() -> Result<(xcb::Connection, i32)> {
         xcb::Connection::connect_with_xlib_display()
             .or_else(|_| Err(Error::PlatformApiFailed("cannot connect to Xorg")))
@@ -58,6 +73,37 @@ impl X11ShellClient {
     fn get_atoms(connection: &xcb::Connection) -> Result<X11Atoms> {
         X11Atoms::intern_all(&connection)
             .or_else(|_| Err(Error::PlatformApiFailed("cannot get X atoms")))
+    }
+
+
+    fn create_fake_window_handle(connection: &xcb::Connection) -> X11WindowHandle {
+        connection.generate_id()
+    }
+
+
+    fn init_fake_window(&self) -> Result<()> {
+        self.connection.send_and_check_request(&xcb::x::CreateWindow {
+            wid: self.fake_window_handle,
+            parent: self.get_default_window(),
+            class: xcb::x::WindowClass::InputOutput,
+            
+            x: 0, y: 0, width: 1, height: 1, border_width: 0,
+            
+            depth: xcb::x::COPY_FROM_PARENT as u8,
+            visual: self.get_default_screen().root_visual(),
+            value_list: &[
+                xcb::x::Cw::EventMask(xcb::x::EventMask::all())
+            ]
+        })
+        .or_else(|_| Err(Error::PlatformApiFailed("cannot create fake window")))
+    }
+
+
+    fn destroy_fake_window(&self) -> Result<()> {
+        self.connection.send_and_check_request(&xcb::x::DestroyWindow {
+            window: self.fake_window_handle,
+        })
+        .or_else(|_| Err(Error::PlatformApiFailed("cannot destroy fake window")))
     }
 
 
@@ -94,13 +140,11 @@ impl X11ShellClient {
 
 
     fn create_window_handle(&self, info: &WindowInfo, visual_info: &X11WindowVisualInfo) -> Result<X11WindowHandle> {
-        let xwindow_id = self.connection.generate_id();
-
-        let default_screen = self.get_default_screen();
+        let window_handle = self.connection.generate_id();
 
         self.connection.send_and_check_request(&xcb::x::CreateWindow {
-            wid: xwindow_id,
-            parent: default_screen.root(),
+            wid: window_handle,
+            parent: self.get_default_window(),
             class: xcb::x::WindowClass::InputOutput,
             
             x: 0,
@@ -112,14 +156,14 @@ impl X11ShellClient {
             depth: visual_info.color_depth,
             visual: visual_info.visualid,
             value_list: &[
-                xcb::x::Cw::BackPixel(default_screen.black_pixel()),
+                xcb::x::Cw::BackPixel(self.get_default_screen().black_pixel()),
                 xcb::x::Cw::EventMask(xcb::x::EventMask::all()),
                 xcb::x::Cw::Colormap(visual_info.colormap)
             ]
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot create window")))?;
 
-        Ok(xwindow_id)
+        Ok(window_handle)
     }
 
 
@@ -149,7 +193,7 @@ impl X11ShellClient {
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {
             mode: xcb::x::PropMode::Replace,
             window: window_handle,
-            property: self.atoms.WM_CLASS,
+            property: xcb::x::ATOM_WM_CLASS,
             r#type: xcb::x::ATOM_STRING,
             data: self.class_name.as_bytes()
         })
@@ -174,6 +218,11 @@ impl X11ShellClient {
         }
 
         protocols
+    }
+
+
+    fn update_window_protocols(&self, window: &X11Window) -> Result<()> {
+        self.set_window_protocols(window.handle, &self.get_window_protocols_list(window))
     }
 
 
@@ -214,6 +263,13 @@ impl X11ShellClient {
 }
 
 
+impl Drop for X11ShellClient {
+    fn drop(&mut self) {
+        self.destroy().unwrap();
+    }
+}
+
+
 
 impl ShellClientTrait for X11ShellClient {
 
@@ -229,13 +285,55 @@ impl ShellClientTrait for X11ShellClient {
         window.id
     }
 
-    fn process_windows<F: events::EventHandler<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) {
-        todo!()
+
+    fn manage_windows<F>(&self, windows: &[&mut Self::Window], mut event_handler: F) -> Result<()>
+        where F: EventHandler<Self>
+    {
+        let mut outcome = EventOutcome::ContinueProcessing;
+        
+        loop {
+            let mut event = Option::<xcb::Event>::None;
+
+            match outcome {
+                EventOutcome::ContinueProcessing => {
+                    event = self.read_next_event()?;
+                }
+
+                EventOutcome::WaitForEvents => {
+                    event = Some(self.wait_for_event()?);
+                }
+
+                EventOutcome::EndProcessing => {
+                    break;
+                }
+            }
+
+            outcome = event_handler(self, todo!(), todo!());
+        }
+
+
+        Ok(())
     }
 
-    fn interrupt_waiting(&self) {
-        todo!()
+
+    fn wakeup(&self) -> Result<()> {
+        let event = xcb::x::ClientMessageEvent::new(
+            self.get_default_window(),
+            xcb::x::ATOM_ANY,
+            xcb::x::ClientMessageData::Data8([0u8; 20])
+        );
+
+        self.connection.send_and_check_request(&xcb::x::SendEvent {
+            propagate: false,
+            destination: xcb::x::SendEventDest::Window(self.fake_window_handle),
+            event_mask: xcb::x::EventMask::NO_EVENT,
+            event: &event
+        })
+        .or_else(|_| Err(Error::PlatformApiFailed("cannot send event")))?;
+        
+        Ok(())
     }
+
 
     fn is_subsystem_available(&self, subsystem: ShellSubsystem) -> bool {
         match subsystem {
@@ -270,6 +368,7 @@ impl ShellClientTrait for X11ShellClient {
         match subsystem {
             ShellSubsystem::SysRedraw => {
                 window.sys_redraw = Some(X11SysRedrawSubsystem::new(self, window.handle)?);
+                self.update_window_protocols(window)?;
             }
 
             ShellSubsystem::TextInput => {
@@ -293,6 +392,7 @@ impl ShellClientTrait for X11ShellClient {
             ShellSubsystem::SysRedraw => {
                 let subsystem = window.sys_redraw.take().unwrap();
                 subsystem.destroy(self)?;
+                self.update_window_protocols(window)?;
             }
 
             ShellSubsystem::TextInput => {
