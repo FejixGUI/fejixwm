@@ -2,7 +2,7 @@
 
 extern crate fejixwm;
 use fejixwm::{
-    *,
+    prelude::*,
     interface::{window_manip::*},
     implementation::null_canvas::NullCanvas
 };
@@ -32,14 +32,22 @@ fn run() -> fejixwm::errors::Result<()> {
         &()
     )?;
 
-    for subsystem in ShellSubsystem::list() {
-        client.enable_subsystem(&mut window, subsystem.clone())?;
-    }
+    // FIXME throws Error::SubsystemForced
+    // for subsystem in ShellSubsystem::list() {
+    //     client.enable_subsystem(&mut window, subsystem.clone())?;
+    // }
 
     client.set_visible(&mut window, true)?;
     client.set_title(&mut window, "Привіт, Rust!")?;
 
-    std::thread::sleep(std::time::Duration::from_millis(3000));
+    client.process_events(&[&mut window], 
+        &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventResponse {
+            match event {
+                Event::Close => EventResponse::EndProcessing,
+                _ => EventResponse::WaitForEvents,
+            }
+        }
+    )?;
 
     canvas.drop(&client, window)?;
 

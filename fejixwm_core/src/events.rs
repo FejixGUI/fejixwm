@@ -19,9 +19,7 @@ pub enum Event {
 
 
 pub enum EventResponse {
-    /// If returned in response to any event except [Event::NoMoreEvents], makes [ShellClientTrait::process_events]
-    /// continue processing events or generate [Event::NoMoreEvents] at the end.
-    /// If returned in response to [Event::NoMoreEvents], makes [ShellClientTrait::run] return
+    /// Makes [ShellClientTrait::process_events] process the next event or generate NoMoreEvents
     ContinueProcessing,
 
     /// Makes [ShellClientTrait::process_events] return as soon as possible.
@@ -33,13 +31,13 @@ pub enum EventResponse {
 
 
 pub trait EventHandler<ShellClientT: ShellClientTrait>
-    : 'static + FnMut(&ShellClientT, &mut ShellClientT::Window, Event) -> EventResponse
+    : 'static + FnMut(&ShellClientT, Option<&&mut ShellClientT::Window>, Event) -> EventResponse
 {}
 
 // Make all closures that look like event handlers actual event handlers
 impl<ShellClientT: ShellClientTrait, EventHandlerT> EventHandler<ShellClientT> for EventHandlerT
 where
-    EventHandlerT: 'static + FnMut(&ShellClientT, &mut ShellClientT::Window, Event) -> EventResponse
+    EventHandlerT: 'static + FnMut(&ShellClientT, Option<&&mut ShellClientT::Window>, Event) -> EventResponse
 {}
 
 

@@ -1,6 +1,6 @@
 use crate::{
     errors::*,
-    events::EventHandler,
+    events::EventHandlerRef,
 };
 
 use std::{
@@ -59,7 +59,7 @@ pub trait ShellClientTrait : Sized {
 
     /// Processes events and returns.
     /// The exact behavior of the function depends on the values returned from the event handler.
-    fn process_events(&self, windows: &[&mut Self::Window], event_handler: &mut dyn EventHandler<Self>)
+    fn process_events(&self, windows: &[&mut Self::Window], event_handler: EventHandlerRef<Self>)
         -> Result<()>;
 
     /// Generates a special event that interrupts [ShellClientTrait::process_events] while waiting for events.

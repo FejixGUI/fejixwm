@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use crate::types::*;
 
 
@@ -312,7 +314,11 @@ impl ShellClientTrait for X11ShellClient {
                 }
             }
 
-            response = self.handle_event(windows, event_handler)?;
+            if event.is_none() {
+                response = event_handler(self, None, Event::NoMoreEvents);
+            } else {
+                response = self.handle_event(windows, event.unwrap(), event_handler)?;
+            }
         }
 
 

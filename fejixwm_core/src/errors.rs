@@ -20,6 +20,8 @@ pub enum Error {
     SubsystemForced,
 
     FeatureNotCompiled,
+
+    IncompleteWindowList,
 }
 
 
@@ -33,6 +35,7 @@ impl std::fmt::Display for Error {
             Self::SubsystemNotAvailable => write!(f, "the subsystem is not available"),
             Self::SubsystemForced => write!(f, "the subsystem state is forced"),
             Self::FeatureNotCompiled => write!(f, "feature was not compiled"),
+            Self::IncompleteWindowList => write!(f, "window list is incomplete"),
         }
     }
 }

@@ -7,7 +7,6 @@ pub use fejixwm_core::{
     errors,
     events,
     interface,
-    *,
 };
 
 #[cfg(not(feature = "_platform_selected"))]
@@ -20,3 +19,10 @@ pub use fejixwm_platform_x11 as platform;
 
 #[cfg(feature = "_platform_selected")]
 pub use platform::*;
+
+
+pub mod prelude {
+    pub use core::*;
+    pub use events::*;
+    pub use platform::*;
+}
