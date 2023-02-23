@@ -32,10 +32,9 @@ fn run() -> fejixwm::errors::Result<()> {
         &()
     )?;
 
-    // FIXME throws Error::SubsystemForced
-    // for subsystem in ShellSubsystem::list() {
-    //     client.enable_subsystem(&mut window, subsystem.clone())?;
-    // }
+    for subsystem in ShellSubsystem::list() {
+        client.enable_subsystem(&mut window, subsystem.clone())?;
+    }
 
     client.set_visible(&mut window, true)?;
     client.set_title(&mut window, "Привіт, Rust!")?;
@@ -43,7 +42,7 @@ fn run() -> fejixwm::errors::Result<()> {
     client.process_events(&[&mut window], 
         &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventResponse {
             match event {
-                Event::Close => EventResponse::EndProcessing,
+                // Event::Close => EventResponse::EndProcessing,
                 _ => EventResponse::WaitForEvents,
             }
         }

@@ -104,6 +104,10 @@ pub trait ShellClientTrait : Sized {
     fn can_set_subsystem_state(&self, window: &Self::Window, subsystem: ShellSubsystem, state_enabled: bool)
         -> Result<bool>
     {
+        if self.is_subsystem_enabled(window, subsystem) == state_enabled {
+            return Ok(false)
+        }
+
         if !self.is_subsystem_available(subsystem) {
             return Err(Error::SubsystemNotAvailable);
         }
@@ -112,7 +116,7 @@ pub trait ShellClientTrait : Sized {
             return Err(Error::SubsystemForced);
         }
 
-        Ok(self.is_subsystem_enabled(window, subsystem) != state_enabled)
+        Ok(true)
     }
 
 }

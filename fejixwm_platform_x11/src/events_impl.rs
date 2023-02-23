@@ -96,6 +96,9 @@ impl X11ShellClient {
 
             if message_type == self.atoms.WM_DELETE_WINDOW.resource_id() {
                 return self.handle_window_close(wrapper.with(&()));
+            } else if message_type == self.atoms._NET_WM_PING.resource_id() {
+                self.handle_ping(wrapper)?;
+                return SUCCESS;
             }
         }
 
@@ -105,6 +108,19 @@ impl X11ShellClient {
 
     fn handle_window_close(&self, wrapper: WindowEventWrapper<()>) -> Result<EventResponse> {
         Ok((wrapper.handler)(self, Some(wrapper.window), Event::Close))
+    }
+
+
+    fn handle_ping(&self, wrapper: WindowEventWrapper<xcb::x::ClientMessageEvent>) -> Result<()> {
+        self.connection.send_and_check_request(&xcb::x::SendEvent {
+            propagate: false,
+            destination: xcb::x::SendEventDest::Window(self.get_default_window()),
+            event_mask: xcb::x::EventMask::all(),
+            event: wrapper.event
+        })
+        .or_else(|_| Err(Error::PlatformApiFailed("cannot respond to system ping")))?;
+        
+        Ok(())
     }
 
 
