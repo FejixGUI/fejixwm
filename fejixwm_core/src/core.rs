@@ -54,41 +54,55 @@ pub trait ShellClientTrait : Sized {
     type Window;
 
 
-    fn new(info: &ShellClientInfo) -> Result<Self>;
+    fn new(info: &ShellClientInfo)
+        -> Result<Self>;
 
     /// Processes events and returns.
     /// The exact behavior of the function depends on the values returned from the event handler.
-    fn process_events<F: EventHandler<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) -> Result<()>;
+    fn process_events(&self, windows: &[&mut Self::Window], event_handler: &mut dyn EventHandler<Self>)
+        -> Result<()>;
 
     /// Generates a special event that interrupts [ShellClientTrait::process_events] while waiting for events.
-    fn wakeup(&self) -> Result<()>;
+    fn wakeup(&self)
+        -> Result<()>;
 
 
-    fn get_window_id(&self, window: &Self::Window) -> WindowId;
+    fn get_window_id(&self, window: &Self::Window)
+        -> WindowId;
+
+    fn get_window_size(&self, window: &Self::Window)
+        -> PixelSize;
 
 
+    /// Returns true if the subystem is globally available
     fn is_subsystem_available(&self, subsystem: ShellSubsystem)
         -> bool;
 
+    /// Returns true if the subystem is enabled for the window
     fn is_subsystem_enabled(&self, window: &Self::Window, subsystem: ShellSubsystem)
         -> bool;
-
+        
+    /// Returns true if the subystem's state is forced and cannot be changed
     fn is_subsystem_forced(&self, window: &Self::Window, subsystem: ShellSubsystem)
         -> bool;
 
-    /// Returns Ok(()) if the subsystem is already enabled
+    /// If the subsystem is already enabled, returns Ok(()) 
     fn enable_subsystem(&self, window: &mut Self::Window, subsystem: ShellSubsystem)
         -> Result<()>;
 
-    /// Returns Ok(()) if the subsystem is already disabled
+    /// If the subsystem is already disabled, returns Ok(()) 
     fn disable_subsystem(&self, window: &mut Self::Window, subsystem: ShellSubsystem)
         -> Result<()>;
 
-    /// Returns `Err` if toggling a subsystem would result in an error.
+    /// Returns `Err` if toggling the subsystem results in error.
     /// 
-    /// Used in `enable/disable_subsystem` AFTER checking whether the subsystem is already enabled/disabled
-    fn check_subsystem_toggleable(&self, window: &Self::Window, subsystem: ShellSubsystem)
-        -> Result<()>
+    /// Returns `Ok(false)` if the state is already set and there is nothing to do.
+    /// 
+    /// Returns `Ok(true)` otherwise.
+    /// 
+    /// Used by [ShellClientTrait::enable_subsystem] and [ShellClientTrait::disable_subsystem].
+    fn can_set_subsystem_state(&self, window: &Self::Window, subsystem: ShellSubsystem, state_enabled: bool)
+        -> Result<bool>
     {
         if !self.is_subsystem_available(subsystem) {
             return Err(Error::SubsystemNotAvailable);
@@ -98,17 +112,16 @@ pub trait ShellClientTrait : Sized {
             return Err(Error::SubsystemForced);
         }
 
-        Ok(())
+        Ok(self.is_subsystem_enabled(window, subsystem) != state_enabled)
     }
 
 }
 
 
+
 pub trait CanvasTrait : Sized {
 
     type ShellClient : ShellClientTrait;
-
-    /// Must be equal to `<Self::ShellClient as ShellClientTrait>::Window`
     type Window;
 
     type CanvasInfo;

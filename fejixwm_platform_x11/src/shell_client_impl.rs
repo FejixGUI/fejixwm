@@ -286,29 +286,33 @@ impl ShellClientTrait for X11ShellClient {
     }
 
 
-    fn process_events<F>(&self, windows: &[&mut Self::Window], mut event_handler: F) -> Result<()>
-        where F: EventHandler<Self>
+    fn get_window_size(&self, window: &Self::Window) -> PixelSize {
+        window.state.size.clone()
+    }
+
+
+    fn process_events(&self, windows: &[&mut Self::Window], event_handler: EventHandlerRef<Self>) -> Result<()>
     {
-        let mut outcome = EventOutcome::ContinueProcessing;
+        let mut response = EventResponse::ContinueProcessing;
         
         loop {
             let mut event = Option::<xcb::Event>::None;
 
-            match outcome {
-                EventOutcome::ContinueProcessing => {
+            match response {
+                EventResponse::ContinueProcessing => {
                     event = self.read_next_event()?;
                 }
 
-                EventOutcome::WaitForEvents => {
+                EventResponse::WaitForEvents => {
                     event = Some(self.wait_for_event()?);
                 }
 
-                EventOutcome::EndProcessing => {
+                EventResponse::EndProcessing => {
                     break;
                 }
             }
 
-            outcome = event_handler(self, todo!(), todo!());
+            response = self.handle_event(windows, event_handler)?;
         }
 
 
@@ -359,11 +363,9 @@ impl ShellClientTrait for X11ShellClient {
     }
 
     fn enable_subsystem(&self, window: &mut Self::Window, subsystem: ShellSubsystem) -> Result<()> {
-        if self.is_subsystem_enabled(window, subsystem) {
-            return Ok(())
+        if !self.can_set_subsystem_state(window, subsystem, true)? {
+            return Ok(());
         }
-
-        self.check_subsystem_toggleable(window, subsystem)?;
 
         match subsystem {
             ShellSubsystem::SysRedraw => {
@@ -382,11 +384,9 @@ impl ShellClientTrait for X11ShellClient {
     }
 
     fn disable_subsystem(&self, window: &mut Self::Window, subsystem: ShellSubsystem) -> Result<()> {
-        if !self.is_subsystem_enabled(window, subsystem) {
-            return Ok(())
+        if !self.can_set_subsystem_state(window, subsystem, false)? {
+            return Ok(());
         }
-        
-        self.check_subsystem_toggleable(window, subsystem)?;
 
         match subsystem {
             ShellSubsystem::SysRedraw => {

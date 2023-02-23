@@ -69,7 +69,7 @@ pub trait RawpixCanvasTrait : CanvasTrait {
     fn present(
         &self,
         client: &Self::ShellClient,
-        window: &mut <Self::ShellClient as ShellClientTrait>::Window
+        window: &mut Self::Window
     ) -> Result<()>;
 
 }

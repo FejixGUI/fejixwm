@@ -7,7 +7,7 @@ use std::{
 
 
 pub enum Event {
-    /// Sent after all available events have been processed in order to query for an event outcome
+    /// Sent after all available events have been processed in order to query for a response
     NoMoreEvents,
 
     /// Sent by [ShellClientTrait::wakeup] in order to interrupt waiting for events
@@ -18,12 +18,13 @@ pub enum Event {
 }
 
 
-pub enum EventOutcome {
-    /// Makes [ShellClientTrait::process_events] continue processing events or generate [Event::NoMoreEvents] there
-    /// are no events left.
+pub enum EventResponse {
+    /// If returned in response to any event except [Event::NoMoreEvents], makes [ShellClientTrait::process_events]
+    /// continue processing events or generate [Event::NoMoreEvents] at the end.
+    /// If returned in response to [Event::NoMoreEvents], makes [ShellClientTrait::run] return
     ContinueProcessing,
 
-    /// Makes [ShellClientTrait::process_events] immediately return.
+    /// Makes [ShellClientTrait::process_events] return as soon as possible.
     EndProcessing,
 
     /// Makes [ShellClientTrait::process_events] block its thread until any new events are received.
@@ -32,14 +33,17 @@ pub enum EventOutcome {
 
 
 pub trait EventHandler<ShellClientT: ShellClientTrait>
-    : 'static + FnMut(&ShellClientT, &mut ShellClientT::Window, Event) -> EventOutcome
+    : 'static + FnMut(&ShellClientT, &mut ShellClientT::Window, Event) -> EventResponse
 {}
 
 // Make all closures that look like event handlers actual event handlers
 impl<ShellClientT: ShellClientTrait, EventHandlerT> EventHandler<ShellClientT> for EventHandlerT
 where
-    EventHandlerT: 'static + FnMut(&ShellClientT, &mut ShellClientT::Window, Event) -> EventOutcome
+    EventHandlerT: 'static + FnMut(&ShellClientT, &mut ShellClientT::Window, Event) -> EventResponse
 {}
+
+
+pub type EventHandlerRef<'a, ShellClientT> = &'a mut dyn EventHandler<ShellClientT>;
 
 
 impl std::fmt::Display for Event {
