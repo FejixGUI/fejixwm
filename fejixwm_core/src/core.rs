@@ -58,9 +58,9 @@ pub trait ShellClientTrait : Sized {
 
     /// Processes events and returns.
     /// The exact behavior of the function depends on the values returned from the event handler.
-    fn manage_windows<F: EventHandler<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) -> Result<()>;
+    fn process_events<F: EventHandler<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) -> Result<()>;
 
-    /// Generates a special event that interrupts [ShellClientTrait::manage_windows] while waiting for events.
+    /// Generates a special event that interrupts [ShellClientTrait::process_events] while waiting for events.
     fn wakeup(&self) -> Result<()>;
 
 

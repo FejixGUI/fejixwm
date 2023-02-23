@@ -19,14 +19,14 @@ pub enum Event {
 
 
 pub enum EventOutcome {
-    /// Makes [ShellClientTrait::manage_windows] continue processing events or generate [Event::NoMoreEvents] there
+    /// Makes [ShellClientTrait::process_events] continue processing events or generate [Event::NoMoreEvents] there
     /// are no events left.
     ContinueProcessing,
 
-    /// Makes [ShellClientTrait::manage_windows] immediately return.
+    /// Makes [ShellClientTrait::process_events] immediately return.
     EndProcessing,
 
-    /// Makes [ShellClientTrait::manage_windows] block its thread until any new events are received.
+    /// Makes [ShellClientTrait::process_events] block its thread until any new events are received.
     WaitForEvents,
 }
 

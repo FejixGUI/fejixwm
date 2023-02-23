@@ -286,7 +286,7 @@ impl ShellClientTrait for X11ShellClient {
     }
 
 
-    fn manage_windows<F>(&self, windows: &[&mut Self::Window], mut event_handler: F) -> Result<()>
+    fn process_events<F>(&self, windows: &[&mut Self::Window], mut event_handler: F) -> Result<()>
         where F: EventHandler<Self>
     {
         let mut outcome = EventOutcome::ContinueProcessing;
