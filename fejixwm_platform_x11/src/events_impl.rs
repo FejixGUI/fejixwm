@@ -21,7 +21,7 @@ impl<'a, EventT> WindowEventWrapper<'a, EventT> {
 }
 
 
-const SUCCESS: Result<EventResponse> = Ok(EventResponse::ContinueProcessing);
+const SUCCESS: Result<EventListenBehavior> = Ok(EventListenBehavior::GetNextEvent);
 
 
 
@@ -48,7 +48,7 @@ impl X11ShellClient {
 
 
     pub(crate) fn handle_event(&self, windows: &[&mut X11Window], event: xcb::Event, handler: EventHandlerRef<Self>)
-        -> Result<EventResponse>
+        -> Result<EventListenBehavior>
     {
         if let Some(window_handle) = self.get_event_window_handle(&event) {
             let window = self.find_window_by_handle(windows, window_handle)
@@ -61,7 +61,7 @@ impl X11ShellClient {
     }
 
 
-    fn handle_window_event(&self, wrapper: WindowEventWrapper<xcb::Event>) -> Result<EventResponse> {
+    fn handle_window_event(&self, wrapper: WindowEventWrapper<xcb::Event>) -> Result<EventListenBehavior> {
         match wrapper.event {
             xcb::Event::X(event) => self.handle_x_event(wrapper.with(event)),
             _ => todo!()
@@ -69,13 +69,13 @@ impl X11ShellClient {
     }
 
 
-    fn handle_global_event(&self, event: &xcb::Event, handler: EventHandlerRef<Self>) -> Result<EventResponse> {
+    fn handle_global_event(&self, event: &xcb::Event, handler: EventHandlerRef<Self>) -> Result<EventListenBehavior> {
         // TODO
         SUCCESS
     }
 
 
-    fn handle_x_event(&self, wrapper: WindowEventWrapper<xcb::x::Event>) -> Result<EventResponse> {
+    fn handle_x_event(&self, wrapper: WindowEventWrapper<xcb::x::Event>) -> Result<EventListenBehavior> {
         match wrapper.event {
             xcb::x::Event::ClientMessage(event) => self.handle_client_message(wrapper.with(event)),
 
@@ -85,7 +85,7 @@ impl X11ShellClient {
     }
 
 
-    fn handle_client_message(&self, wrapper: WindowEventWrapper<xcb::x::ClientMessageEvent>) -> Result<EventResponse> {
+    fn handle_client_message(&self, wrapper: WindowEventWrapper<xcb::x::ClientMessageEvent>) -> Result<EventListenBehavior> {
         use xcb::Xid;
 
         let message_data = wrapper.event.data();
@@ -106,7 +106,7 @@ impl X11ShellClient {
     }
 
 
-    fn handle_window_close(&self, wrapper: WindowEventWrapper<()>) -> Result<EventResponse> {
+    fn handle_window_close(&self, wrapper: WindowEventWrapper<()>) -> Result<EventListenBehavior> {
         Ok((wrapper.handler)(self, Some(wrapper.window), Event::Close))
     }
 

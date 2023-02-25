@@ -1,14 +1,10 @@
 use crate::{
     errors::*,
-    events::EventHandlerRef,
-};
-
-use std::{
-    any::Any
+    events::{EventCallback, SystemEventTrait},
 };
 
 
-pub type WindowId = u32;
+pub type WindowId = usize;
 
 
 #[derive(Clone)]
@@ -41,17 +37,20 @@ pub struct ShellClientInfo<'a> {
 #[derive(Clone)]
 pub struct WindowInfo {
     pub size: PixelSize,
+}
 
-    /// Arbitrary number that is attached to the window and can be used by the program.
-    /// This has no special meaning to FejixWM.
-    /// After creation id can be accessed via [ShellClientTrait::get_window_id].
-    pub id: WindowId,
+
+pub trait WindowTrait {
+
+    fn get_id(&self) -> WindowId;
+
 }
 
 
 pub trait ShellClientTrait : Sized {
 
-    type Window;
+    type Window : WindowTrait;
+    type SystemEvent : SystemEventTrait;
 
 
     fn new(info: &ShellClientInfo)
@@ -59,16 +58,14 @@ pub trait ShellClientTrait : Sized {
 
     /// Processes events and returns.
     /// The exact behavior of the function depends on the values returned from the event handler.
-    fn process_events(&self, windows: &[&mut Self::Window], event_handler: EventHandlerRef<Self>)
-        -> Result<()>;
+    fn process_events<F>(&self, windows: &[&mut Self::Window], event_handler: F)
+        -> Result<()>
+        where F: EventCallback<Self>;
 
-    /// Generates a special event that interrupts [ShellClientTrait::process_events] while waiting for events.
+    /// Generates a special event that interrupts [ShellClientTrait::listen_to_events] while waiting for events.
     fn wakeup(&self)
         -> Result<()>;
 
-
-    fn get_window_id(&self, window: &Self::Window)
-        -> WindowId;
 
     fn get_window_size(&self, window: &Self::Window)
         -> PixelSize;
@@ -118,6 +115,9 @@ pub trait ShellClientTrait : Sized {
 
         Ok(true)
     }
+
+
+    fn listen_to_events<F: EventCallback<Self>>(&self, callback: F) -> Result<()>;
 
 }
 

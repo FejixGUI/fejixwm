@@ -293,23 +293,24 @@ impl ShellClientTrait for X11ShellClient {
     }
 
 
-    fn process_events(&self, windows: &[&mut Self::Window], event_handler: EventHandlerRef<Self>) -> Result<()>
+    fn process_events<F: EventCallback<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) -> Result<()>
     {
-        let mut response = EventResponse::ContinueProcessing;
+        let event_handler: Box<dyn EventCallback<Self>> = Box::new(event_handler);
+        let mut response = EventListenBehavior::GetNextEvent;
         
         loop {
             let mut event = Option::<xcb::Event>::None;
 
             match response {
-                EventResponse::ContinueProcessing => {
+                EventListenBehavior::GetNextEvent => {
                     event = self.read_next_event()?;
                 }
 
-                EventResponse::WaitForEvents => {
+                EventListenBehavior::WaitForEvents => {
                     event = Some(self.wait_for_event()?);
                 }
 
-                EventResponse::EndProcessing => {
+                EventListenBehavior::Quit => {
                     break;
                 }
             }

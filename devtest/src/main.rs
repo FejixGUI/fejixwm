@@ -39,11 +39,21 @@ fn run() -> fejixwm::errors::Result<()> {
     client.set_visible(&mut window, true)?;
     client.set_title(&mut window, "Привіт, Rust!")?;
 
+    let mut i = 0;
+
     client.process_events(&[&mut window], 
-        &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventResponse {
+        &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventListenBehavior {
             match event {
-                // Event::Close => EventResponse::EndProcessing,
-                _ => EventResponse::WaitForEvents,
+                Event::Close => {
+                    if i == 1 {
+                        EventListenBehavior::Quit
+                    } else {
+                        i += 1;
+                        EventListenBehavior::GetNextEvent
+                    }
+                },
+
+                _ => EventListenBehavior::WaitForEvents,
             }
         }
     )?;

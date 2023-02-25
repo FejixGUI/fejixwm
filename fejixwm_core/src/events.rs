@@ -1,15 +1,19 @@
 use crate::core::*;
 
 use std::{
-    any::Any,
     ops::FnMut,
 };
 
 
-pub enum Event {
-    /// Sent after all available events have been processed in order to query for a response
-    NoMoreEvents,
+pub trait SystemEventTrait {
 
+    /// Returns `None` if the event if a global event
+    fn get_window_id(&self) -> Option<WindowId>;
+
+}
+
+
+pub enum Event {
     /// Sent by [ShellClientTrait::wakeup] in order to interrupt waiting for events
     Wakeup,
 
@@ -18,36 +22,38 @@ pub enum Event {
 }
 
 
-pub enum EventResponse {
-    /// Makes [ShellClientTrait::process_events] process the next event or generate NoMoreEvents
-    ContinueProcessing,
+pub enum EventListenBehavior {
+    /// Makes [ShellClientTrait::listen_to_events] handle the next event if available or None otherwise.
+    GetNextEvent,
 
-    /// Makes [ShellClientTrait::process_events] return as soon as possible.
-    EndProcessing,
+    /// Makes [ShellClientTrait::listen_to_events] return as soon as possible.
+    Quit,
 
-    /// Makes [ShellClientTrait::process_events] block its thread until any new events are received.
+    /// Makes [ShellClientTrait::listen_to_events] block its thread until any new events are received.
     WaitForEvents,
 }
 
 
-pub trait EventHandler<ShellClientT: ShellClientTrait>
-    : 'static + FnMut(&ShellClientT, Option<&&mut ShellClientT::Window>, Event) -> EventResponse
+pub struct EventListenSettings {
+    pub behavior: EventListenBehavior
+}
+
+
+pub trait EventCallback<ShellClientT: ShellClientTrait>
+    : FnMut(Option<&ShellClientT::SystemEvent>, &mut EventListenSettings) -> EventListenBehavior
 {}
 
 // Make all closures that look like event handlers actual event handlers
-impl<ShellClientT: ShellClientTrait, EventHandlerT> EventHandler<ShellClientT> for EventHandlerT
+impl<ShellClientT: ShellClientTrait, EventHandlerT> EventCallback<ShellClientT> for EventHandlerT
 where
-    EventHandlerT: 'static + FnMut(&ShellClientT, Option<&&mut ShellClientT::Window>, Event) -> EventResponse
+    EventHandlerT: FnMut(Option<&ShellClientT::SystemEvent>, &mut EventListenSettings) -> EventListenBehavior
 {}
 
-
-pub type EventHandlerRef<'a, ShellClientT> = &'a mut dyn EventHandler<ShellClientT>;
 
 
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::NoMoreEvents => write!(f, "no more events left to process"),
             Self::Wakeup => write!(f, "woke up"),
             Self::Close => write!(f, "closed"),
             Self::Resize { new_size } => write!(f, "resized to {new_size}"),
