@@ -5,9 +5,9 @@ use std::{
 };
 
 
-pub trait SystemEventTrait {
+pub trait ShellEventTrait : Sized {
 
-    /// Returns `None` if the event if a global event
+    /// Returns `None` if the event is a global event
     fn get_window_id(&self) -> Option<WindowId>;
 
 }
@@ -22,7 +22,7 @@ pub enum Event {
 }
 
 
-pub enum EventListenBehavior {
+pub enum EventListeningBehavior {
     /// Makes [ShellClientTrait::listen_to_events] handle the next event if available or None otherwise.
     GetNextEvent,
 
@@ -34,19 +34,31 @@ pub enum EventListenBehavior {
 }
 
 
-pub struct EventListenSettings {
-    pub behavior: EventListenBehavior
+pub struct EventListeningSettings {
+    pub behavior: EventListeningBehavior
 }
 
 
+/// No shell event is sent when the current behavior is [EventListeningBehavior::GetNextEvent] but there are no events.
 pub trait EventCallback<ShellClientT: ShellClientTrait>
-    : FnMut(Option<&ShellClientT::SystemEvent>, &mut EventListenSettings) -> EventListenBehavior
+    : FnMut(Option<&ShellClientT::ShellEvent>, &mut EventListeningSettings)
+{}
+
+/// No window is passed when the event is global
+pub trait EventHandler<ShellClientT: ShellClientTrait>
+    : FnMut(Event, Option<&mut ShellClientT::Window>)
+{}
+
+// Make all closures that look like event callbacks actual event callbacks
+impl<ShellClientT: ShellClientTrait, EventCallbackT> EventCallback<ShellClientT> for EventCallbackT
+where
+    EventCallbackT: FnMut(Option<&ShellClientT::ShellEvent>, &mut EventListeningSettings)
 {}
 
 // Make all closures that look like event handlers actual event handlers
-impl<ShellClientT: ShellClientTrait, EventHandlerT> EventCallback<ShellClientT> for EventHandlerT
+impl<ShellClientT: ShellClientTrait, EventHandlerT> EventHandler<ShellClientT> for EventHandlerT
 where
-    EventHandlerT: FnMut(Option<&ShellClientT::SystemEvent>, &mut EventListenSettings) -> EventListenBehavior
+    EventHandlerT: FnMut(Event, Option<&mut ShellClientT::Window>)
 {}
 
 

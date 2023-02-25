@@ -42,18 +42,18 @@ fn run() -> fejixwm::errors::Result<()> {
     let mut i = 0;
 
     client.process_events(&[&mut window], 
-        &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventListenBehavior {
+        &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventListeningBehavior {
             match event {
                 Event::Close => {
                     if i == 1 {
-                        EventListenBehavior::Quit
+                        EventListeningBehavior::Quit
                     } else {
                         i += 1;
-                        EventListenBehavior::GetNextEvent
+                        EventListeningBehavior::GetNextEvent
                     }
                 },
 
-                _ => EventListenBehavior::WaitForEvents,
+                _ => EventListeningBehavior::WaitForEvents,
             }
         }
     )?;

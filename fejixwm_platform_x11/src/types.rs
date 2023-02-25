@@ -3,7 +3,7 @@
 pub(crate) use crate::core::{
     errors::*,
     events::{
-        EventCallback, EventListenBehavior, Event
+        EventCallback, EventListeningBehavior, Event
     },
     *
 };

@@ -1,9 +1,15 @@
 use crate::{
     errors::*,
-    events::{EventCallback, SystemEventTrait},
+    events::{Event, EventHandler, EventCallback, ShellEventTrait},
 };
 
 
+/// An identifier of a FejixWM window.
+/// 
+/// Often corresponds to the window handle, but does not have the same meaning as the handle.
+/// For example, system events frequently contain window handles that do not point to the windows created by the
+/// FejixWM user. Such handles may point to the shell's root window, to the internal fake window created by FejixWM
+/// or even to NULL. We say that such events contain window handles but do not contain window identifiers.
 pub type WindowId = usize;
 
 
@@ -26,10 +32,10 @@ pub enum ShellSubsystem {
 #[derive(Clone)]
 pub struct ShellClientInfo<'a> {
     /// ASCII string that represents the identifier of the program, often called "window class" by numerous platforms.
-    /// This SHOULD be unique for every application.
+    /// This SHOULD be unique for each application.
     pub id: &'a str,
     
-    /// Declares what protocols the client is going to use
+    /// Declares what protocols of the shell the client is going to use
     pub subsystems: &'a [ShellSubsystem],
 }
 
@@ -40,9 +46,12 @@ pub struct WindowInfo {
 }
 
 
-pub trait WindowTrait {
+pub trait WindowTrait : Sized {
 
     fn get_id(&self) -> WindowId;
+
+    /// Returns the cached size. The cached size is updated by [ShellClientTrait::process_event].
+    fn get_size(&self) -> PixelSize;
 
 }
 
@@ -50,25 +59,33 @@ pub trait WindowTrait {
 pub trait ShellClientTrait : Sized {
 
     type Window : WindowTrait;
-    type SystemEvent : SystemEventTrait;
+
+    type ShellEvent : ShellEventTrait;
 
 
     fn new(info: &ShellClientInfo)
         -> Result<Self>;
 
-    /// Processes events and returns.
-    /// The exact behavior of the function depends on the values returned from the event handler.
-    fn process_events<F>(&self, windows: &[&mut Self::Window], event_handler: F)
+
+    /// Runs an event loop that receives system events from the shell
+    fn listen_to_events<F>(&self, callback: F)
         -> Result<()>
         where F: EventCallback<Self>;
+
+    /// Translates the system event to zero or more FejixWM events, handles them and modifies the window state.
+    fn process_event<F>(&self, event: &Self::ShellEvent, window: Option<&mut Self::Window>, handler: F)
+        -> Result<()>
+        where F: EventHandler<Self>;
+
 
     /// Generates a special event that interrupts [ShellClientTrait::listen_to_events] while waiting for events.
     fn wakeup(&self)
         -> Result<()>;
 
 
+    /// Asks the shell for the current window size.
     fn get_window_size(&self, window: &Self::Window)
-        -> PixelSize;
+        -> Result<PixelSize>;
 
 
     /// Returns true if the subystem is globally available
@@ -117,7 +134,6 @@ pub trait ShellClientTrait : Sized {
     }
 
 
-    fn listen_to_events<F: EventCallback<Self>>(&self, callback: F) -> Result<()>;
 
 }
 

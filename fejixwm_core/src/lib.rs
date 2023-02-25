@@ -21,12 +21,17 @@ This crate contains platform-independent code of FejixWM.
 * **Graphics API** - an API for displaying graphics on a window's surface, e.g. OpenGL or Vulkan.
   FejixWM provides a software rendering API called Rawpix.
 
+* **Shell event** - a message sent by the shell to a client to indicate that something has happened
+  (e.g. mouse has been moved, a key has been pressed etc.).
+
 ### Specific to FejixWM
 
 * **Canvas** - an object used to display graphics, e.g. OpenGL context or Vulkan surface.
   Every window must have at most one canvas.
 
-* **WM subsystem** - specific WM functionality that can be turned ON and OFF.
+* **Shell subsystem** - specific functionality that can be turned ON and OFF.
+
+* **Event** (not to be confused with the *shell event*) - a translated shell event that can be consumed by the program.
 
 */
 
