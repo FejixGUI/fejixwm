@@ -3,7 +3,7 @@
 pub(crate) use crate::core::{
     errors::*,
     events::{
-        EventCallback, EventListeningBehavior, Event
+        Event, ShellEventTrait, EventCallback, EventHandler, EventListeningBehavior, EventListeningSettings,
     },
     *
 };
@@ -14,17 +14,18 @@ pub(crate) use xcb;
 pub(crate) use std::{
     ptr::{null, null_mut},
     ffi,
-    any::Any,
 };
 
-
-pub type ShellClient = X11ShellClient;
-pub type Window = X11Window;
 
 
 pub(crate) type X11WindowHandle = xcb::x::Window;
 
-pub struct X11ShellClient {
+pub(crate) fn window_handle_to_id(handle: X11WindowHandle) -> WindowId {
+    use xcb::Xid;
+    handle.resource_id() as usize
+}
+
+pub struct ShellClient {
     pub(crate) connection: xcb::Connection,
     pub(crate) xdisplay: *mut xlib::Display,
     pub(crate) atoms: X11Atoms,
@@ -37,12 +38,18 @@ pub struct X11ShellClient {
     pub(crate) text_input_subsystem: Option<X11GlobalTextInputSubsystem>,
 }
 
-pub struct X11Window {
-    pub(crate) id: WindowId,
+pub struct Window {
     pub(crate) handle: X11WindowHandle,
     pub(crate) state: X11WindowState,
     pub(crate) text_input: Option<X11TextInputSubsystem>,
     pub(crate) sys_redraw: Option<X11SysRedrawSubsystem>
+}
+
+
+pub struct ShellEvent {
+    pub(crate) event: xcb::Event,
+    pub(crate) is_global: bool,
+    pub(crate) window_handle: Option<X11WindowHandle>,
 }
 
 

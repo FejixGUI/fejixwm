@@ -12,8 +12,8 @@ impl NullCanvasTrait for NullCanvas {}
 
 impl CanvasTrait for NullCanvas {
 
-    type ShellClient = X11ShellClient;
-    type Window = X11Window;
+    type ShellClient = ShellClient;
+    type Window = Window;
     
     type CanvasInfo = ();
 

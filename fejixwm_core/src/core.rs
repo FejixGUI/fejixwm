@@ -68,18 +68,23 @@ pub trait ShellClientTrait : Sized {
 
 
     /// Runs an event loop that receives system events from the shell
-    fn listen_to_events<F>(&self, callback: F)
-        -> Result<()>
-        where F: EventCallback<Self>;
+    fn listen_to_events(&self, callback: impl EventCallback<Self>)
+        -> Result<()>;
 
     /// Translates the system event to zero or more FejixWM events, handles them and modifies the window state.
-    fn process_event<F>(&self, event: &Self::ShellEvent, window: Option<&mut Self::Window>, handler: F)
-        -> Result<()>
-        where F: EventHandler<Self>;
+    /// 
+    /// The `window` should be `None` if the event is global.
+    fn process_event(
+        &self, event: &Self::ShellEvent, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
+    )
+        -> Result<()>;
 
 
-    /// Generates a special event that interrupts [ShellClientTrait::listen_to_events] while waiting for events.
-    fn wakeup(&self)
+    /// Generates an artificial event called trigger event.
+    /// 
+    /// The event, as any other event, causes [ShellClientTrait::listen_to_events] to wake up while waiting for events.
+    /// Thus, this function can be used to awake the thread listening to events from another threads.
+    fn trigger_event(&self)
         -> Result<()>;
 
 

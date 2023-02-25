@@ -6,8 +6,8 @@ use crate::{
 
 /// Reduces function arguments boilerplate
 struct WindowEventWrapper<'a, EventT> {
-    pub window: &'a &'a mut X11Window,
-    pub handler: EventHandlerRef<'a, X11ShellClient>,
+    pub window: &'a mut Window,
+    pub handler: Box<dyn EventHandler<ShellClient>>,
     pub event: &'a EventT,
 }
 
@@ -25,43 +25,9 @@ const SUCCESS: Result<EventListeningBehavior> = Ok(EventListeningBehavior::GetNe
 
 
 
-impl X11ShellClient {
+impl ShellClient {
 
-    pub(crate) fn read_next_event(&self) -> Result<Option<xcb::Event>> {
-        self.connection.poll_for_event()
-            .or_else(|_| Err(Error::PlatformApiFailed("cannot poll for next event")))
-    }
-
-
-    pub(crate) fn wait_for_event(&self) -> Result<xcb::Event> {
-        self.connection.wait_for_event()
-            .or_else(|_| Err(Error::PlatformApiFailed("cannot wait for next event")))
-    }
-
-
-    fn find_window_by_handle<'a>(&self, windows: &'a [&'a mut Window], handle: X11WindowHandle)
-        -> Option<&&'a mut Window>
-    {
-        windows.iter()
-            .find(|window| window.handle == handle)
-    }
-
-
-    pub(crate) fn handle_event(&self, windows: &[&mut X11Window], event: xcb::Event, handler: EventHandlerRef<Self>)
-        -> Result<EventListeningBehavior>
-    {
-        if let Some(window_handle) = self.get_event_window_handle(&event) {
-            let window = self.find_window_by_handle(windows, window_handle)
-                .ok_or(Error::IncompleteWindowList)?;
-
-            return self.handle_window_event(WindowEventWrapper { window, event: &event, handler });
-        } 
-
-        return self.handle_global_event(&event, handler);
-    }
-
-
-    fn handle_window_event(&self, wrapper: WindowEventWrapper<xcb::Event>) -> Result<EventListeningBehavior> {
+    /* fn handle_window_event(&self, wrapper: WindowEventWrapper<xcb::Event>) -> Result<EventListeningBehavior> {
         match wrapper.event {
             xcb::Event::X(event) => self.handle_x_event(wrapper.with(event)),
             _ => todo!()
@@ -121,10 +87,10 @@ impl X11ShellClient {
         .or_else(|_| Err(Error::PlatformApiFailed("cannot respond to system ping")))?;
         
         Ok(())
-    }
+    } */
 
 
-    fn get_event_window_handle(&self, event: &xcb::Event) -> Option<X11WindowHandle> {
+    pub(crate) fn get_event_window_handle(&self, event: &xcb::Event) -> Option<X11WindowHandle> {
         match event {
             xcb::Event::X(event) => {
                 use xcb::x::Event::*;

@@ -10,12 +10,17 @@ pub trait ShellEventTrait : Sized {
     /// Returns `None` if the event is a global event
     fn get_window_id(&self) -> Option<WindowId>;
 
+
+    fn is_global(&self) -> bool {
+        self.get_window_id().is_none()
+    }
+
 }
 
 
 pub enum Event {
-    /// Sent by [ShellClientTrait::wakeup] in order to interrupt waiting for events
-    Wakeup,
+    /// Sent by [ShellClientTrait::trigger_event]
+    Trigger,
 
     Close,
     Resize { new_size: PixelSize },
@@ -34,6 +39,7 @@ pub enum EventListeningBehavior {
 }
 
 
+#[derive(Default)]
 pub struct EventListeningSettings {
     pub behavior: EventListeningBehavior
 }
@@ -66,9 +72,15 @@ where
 impl std::fmt::Display for Event {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Wakeup => write!(f, "woke up"),
+            Self::Trigger => write!(f, "triggered"),
             Self::Close => write!(f, "closed"),
             Self::Resize { new_size } => write!(f, "resized to {new_size}"),
         }
+    }
+}
+
+impl Default for EventListeningBehavior {
+    fn default() -> Self {
+        Self::GetNextEvent
     }
 }

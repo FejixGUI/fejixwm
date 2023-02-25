@@ -2,7 +2,7 @@ use crate::types::*;
 
 
 impl X11GlobalTextInputSubsystem {
-    pub fn new(client: &X11ShellClient) -> Result<Self> {
+    pub fn new(client: &ShellClient) -> Result<Self> {
         let input_method = unsafe {
             xlib::XOpenIM(client.xdisplay, null_mut(), null_mut(), null_mut())
         };
@@ -27,14 +27,14 @@ impl X11GlobalTextInputSubsystem {
 
 
 impl X11SysRedrawSubsystem {
-    pub fn new(client: &X11ShellClient, window_handle: X11WindowHandle) -> Result<Self> {
+    pub fn new(client: &ShellClient, window_handle: X11WindowHandle) -> Result<Self> {
         let myself = Self::create(client, window_handle)?;
         myself.init_for_window(client, window_handle)?;
         Ok(myself)
     }
 
 
-    pub fn destroy(&self, client: &X11ShellClient) -> Result<()> {
+    pub fn destroy(&self, client: &ShellClient) -> Result<()> {
         client.connection.send_and_check_request(&xcb::sync::DestroyCounter {
             counter: self.sync_counter,
         })
@@ -44,7 +44,7 @@ impl X11SysRedrawSubsystem {
     }
 
 
-    fn create(client: &X11ShellClient, window_handle: X11WindowHandle) -> Result<Self> {
+    fn create(client: &ShellClient, window_handle: X11WindowHandle) -> Result<Self> {
         let sync_counter = client.connection.generate_id();
         let sync_value = xcb::sync::Int64 { hi: 0, lo: 0 };
 
@@ -58,7 +58,7 @@ impl X11SysRedrawSubsystem {
     }
 
 
-    fn init_for_window(&self, client: &X11ShellClient, window_handle: X11WindowHandle) -> Result<()> {
+    fn init_for_window(&self, client: &ShellClient, window_handle: X11WindowHandle) -> Result<()> {
         use xcb::Xid;
 
         client.connection.send_and_check_request(&xcb::x::ChangeProperty {
@@ -91,7 +91,7 @@ impl X11SysRedrawSubsystem {
     }
 
 
-    fn synchronise(&self, client: &X11ShellClient) -> Result<()> {
+    fn synchronise(&self, client: &ShellClient) -> Result<()> {
         client.connection.send_and_check_request(&xcb::sync::SetCounter {
             counter: self.sync_counter,
             value: self.sync_value
@@ -102,14 +102,14 @@ impl X11SysRedrawSubsystem {
 
 
     /// Forbids the shell to update the surface on the screen
-    pub fn lock_surface(&mut self, client: &X11ShellClient) -> Result<()> {
+    pub fn lock_surface(&mut self, client: &ShellClient) -> Result<()> {
         self.increment_sync_value();
         self.synchronise(client)
     }
 
 
     /// Allows the shell to update the surface on teh screen
-    pub fn unlock_surface(&mut self, client: &X11ShellClient) -> Result<()> {
+    pub fn unlock_surface(&mut self, client: &ShellClient) -> Result<()> {
         self.increment_sync_value();
         self.synchronise(client)
     }
@@ -119,7 +119,7 @@ impl X11SysRedrawSubsystem {
 
 impl X11TextInputSubsystem {
 
-    pub fn new(client: &X11ShellClient, window_handle: X11WindowHandle) -> Result<Self> {
+    pub fn new(client: &ShellClient, window_handle: X11WindowHandle) -> Result<Self> {
         use xcb::Xid;
 
         if client.text_input_subsystem.is_none() {

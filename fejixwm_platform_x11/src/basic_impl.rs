@@ -1,10 +1,11 @@
 #![allow(unused_assignments)]
 
+
 use crate::types::*;
 
 
 
-impl X11ShellClient {
+impl ShellClient {
     pub fn new(info: &ShellClientInfo) -> Result<Self> {
         let (connection, default_screen_number) = Self::connect()?;
         let xdisplay = connection.get_raw_dpy();
@@ -212,7 +213,7 @@ impl X11ShellClient {
     }
 
 
-    fn get_window_protocols_list(&self, window: &X11Window) -> Vec<xcb::x::Atom> {
+    fn get_window_protocols_list(&self, window: &Window) -> Vec<xcb::x::Atom> {
         let mut protocols = self.get_default_wm_protocols();
 
         if window.sys_redraw.is_some() {
@@ -223,19 +224,18 @@ impl X11ShellClient {
     }
 
 
-    fn update_window_protocols(&self, window: &X11Window) -> Result<()> {
+    fn update_window_protocols(&self, window: &Window) -> Result<()> {
         self.set_window_protocols(window.handle, &self.get_window_protocols_list(window))
     }
 
 
-    pub(crate) fn new_window(&self, info: &WindowInfo, visual_info: &X11WindowVisualInfo) -> Result<X11Window> {
+    pub(crate) fn new_window(&self, info: &WindowInfo, visual_info: &X11WindowVisualInfo) -> Result<Window> {
         let window_handle = self.create_window_handle(info, visual_info)?;
         self.set_window_class(window_handle)?;
         self.set_window_protocols(window_handle, &self.get_default_wm_protocols())?;
         let state = self.get_window_initial_state(window_handle, info);
 
-        Ok(X11Window {
-            id: info.id,
+        Ok(Window {
             handle: window_handle,
             state,
             text_input: None,
@@ -244,14 +244,14 @@ impl X11ShellClient {
     }
 
 
-    pub(crate) fn drop_window(&self, mut window: X11Window) -> Result<()> {
+    pub(crate) fn drop_window(&self, mut window: Window) -> Result<()> {
         self.destroy_window_subsystems(&mut window)?;
         self.destroy_window_handle(window.handle)?;
         Ok(())
     }
 
 
-    fn destroy_window_subsystems(&self, window: &mut X11Window) -> Result<()> {
+    fn destroy_window_subsystems(&self, window: &mut Window) -> Result<()> {
         for subsystem in ShellSubsystem::list() {
             if !self.is_subsystem_forced(window, subsystem.clone()) {
                 self.disable_subsystem(window, subsystem.clone())?;
@@ -262,74 +262,92 @@ impl X11ShellClient {
     }
 
 
+    fn poll_for_event(&self) -> Result<Option<xcb::Event>> {
+        self.connection.poll_for_event()
+            .or_else(|_| Err(Error::PlatformApiFailed("cannot poll for event")))
+    }
+
+
+    fn wait_for_event(&self) -> Result<xcb::Event> {
+        self.connection.wait_for_event()
+            .or_else(|_| Err(Error::PlatformApiFailed("error while waitinf for event")))
+    }
+
+
+    fn make_shell_event(&self, event: xcb::Event) -> ShellEvent {
+        let window_handle = self.get_event_window_handle(&event);
+
+        let is_global = if let Some(handle) = window_handle {
+            handle == self.fake_window_handle
+        } else {
+            true
+        };
+
+        ShellEvent { event, is_global, window_handle }
+    }
+
+
 }
 
 
-impl Drop for X11ShellClient {
+impl Drop for ShellClient {
     fn drop(&mut self) {
         self.destroy().unwrap();
     }
 }
 
 
+impl WindowTrait for Window {
 
-impl ShellClientTrait for X11ShellClient {
+    fn get_id(&self) -> WindowId {
+        window_handle_to_id(self.handle)
+    }
 
-    type Window = X11Window;
+    fn get_size(&self) -> PixelSize {
+        self.state.size.clone()
+    }
+
+}
+
+
+impl ShellEventTrait for ShellEvent {
+    fn get_window_id(&self) -> Option<WindowId> {
+        if self.is_global {
+            None
+        } else {
+            Some(window_handle_to_id(self.window_handle.unwrap()))
+        }
+    }
+}
+
+
+impl ShellClientTrait for ShellClient {
+
+    type Window = Window;
+    type ShellEvent = ShellEvent;
 
 
     fn new(info: &ShellClientInfo) -> Result<Self> {
-        X11ShellClient::new(info)
+        ShellClient::new(info)
     }
 
 
-    fn get_window_id(&self, window: &Self::Window) -> WindowId {
-        window.id
+
+    fn get_window_size(&self, window: &Self::Window) -> Result<PixelSize> {
+        let cookie = self.connection.send_request(&xcb::x::GetGeometry {
+            drawable: xcb::x::Drawable::Window(window.handle)
+        });
+
+        let reply = self.connection.wait_for_reply(cookie)
+            .or_else(|_| Err(Error::PlatformApiFailed("cannot get window size")))?;
+
+        Ok(PixelSize::new(reply.x() as u32, reply.y() as u32))
     }
 
 
-    fn get_window_size(&self, window: &Self::Window) -> PixelSize {
-        window.state.size.clone()
-    }
-
-
-    fn process_events<F: EventCallback<Self>>(&self, windows: &[&mut Self::Window], event_handler: F) -> Result<()>
-    {
-        let event_handler: Box<dyn EventCallback<Self>> = Box::new(event_handler);
-        let mut response = EventListeningBehavior::GetNextEvent;
-        
-        loop {
-            let mut event = Option::<xcb::Event>::None;
-
-            match response {
-                EventListeningBehavior::GetNextEvent => {
-                    event = self.read_next_event()?;
-                }
-
-                EventListeningBehavior::WaitForEvents => {
-                    event = Some(self.wait_for_event()?);
-                }
-
-                EventListeningBehavior::Quit => {
-                    break;
-                }
-            }
-
-            if event.is_none() {
-                response = event_handler(self, None, Event::NoMoreEvents);
-            } else {
-                response = self.handle_event(windows, event.unwrap(), event_handler)?;
-            }
-        }
-
-
-        Ok(())
-    }
-
-
-    fn wakeup(&self) -> Result<()> {
+    fn trigger_event(&self) -> Result<()> {
         let event = xcb::x::ClientMessageEvent::new(
-            self.get_default_window(),
+            self.fake_window_handle,
             xcb::x::ATOM_ANY,
             xcb::x::ClientMessageData::Data8([0u8; 20])
         );
@@ -343,6 +361,42 @@ impl ShellClientTrait for X11ShellClient {
         .or_else(|_| Err(Error::PlatformApiFailed("cannot send event")))?;
         
         Ok(())
+    }
+
+
+    fn listen_to_events(&self, mut callback: impl EventCallback<Self>) -> Result<()> {
+        let mut settings = EventListeningSettings::default();
+
+        let mut event = Option::<xcb::Event>::None;
+
+        loop {
+            match settings.behavior {
+                EventListeningBehavior::Quit =>
+                    break,
+
+                EventListeningBehavior::GetNextEvent => {
+                    event = self.poll_for_event()?;
+                }
+
+                EventListeningBehavior::WaitForEvents => {
+                    event = Some(self.wait_for_event()?);
+                }
+            }
+
+            let shell_event = event.and_then(|event| Some(self.make_shell_event(event)));
+
+            callback(shell_event.as_ref(), &mut settings);
+        }
+
+        Ok(())
+    }
+
+
+    fn process_event(
+        &self, event: &Self::ShellEvent, window: Option<&mut Self::Window>, mut handler: impl EventHandler<Self>
+    ) -> Result<()> 
+    {
+        Ok(())    
     }
 
 

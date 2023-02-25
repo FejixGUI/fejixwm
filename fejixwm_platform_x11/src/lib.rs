@@ -9,7 +9,7 @@ extern crate x11;
 extern crate xcb;
 
 mod types;
-mod shell_client_impl;
+mod basic_impl;
 mod subsystems_impl;
 mod events_impl;
 pub mod implementation;

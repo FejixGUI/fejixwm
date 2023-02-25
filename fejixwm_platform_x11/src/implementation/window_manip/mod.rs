@@ -6,7 +6,7 @@ use crate::{
 pub use crate::core::interface::window_manip::*;
 
 
-impl VisibilityController for X11ShellClient {
+impl VisibilityController for ShellClient {
 
     fn set_visible(&self, window: &mut Self::Window, visible: bool) -> Result<()> {
         if visible {
@@ -28,7 +28,7 @@ impl VisibilityController for X11ShellClient {
 }
 
 
-impl TitleController for X11ShellClient {
+impl TitleController for ShellClient {
 
     fn set_title(&self, window: &mut Self::Window, title: &str) -> Result<()> {
         self.connection.send_and_check_request(&xcb::x::ChangeProperty {

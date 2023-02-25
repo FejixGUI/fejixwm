@@ -27,7 +27,6 @@ fn run() -> fejixwm::errors::Result<()> {
         &client,
         &WindowInfo {
             size: PixelSize::new(800, 600),
-            id: 123
         },
         &()
     )?;
@@ -41,22 +40,9 @@ fn run() -> fejixwm::errors::Result<()> {
 
     let mut i = 0;
 
-    client.process_events(&[&mut window], 
-        &mut |client: &ShellClient, window: Option<&&mut Window>, event: Event| -> EventListeningBehavior {
-            match event {
-                Event::Close => {
-                    if i == 1 {
-                        EventListeningBehavior::Quit
-                    } else {
-                        i += 1;
-                        EventListeningBehavior::GetNextEvent
-                    }
-                },
+    client.listen_to_events(|event: Option<&ShellEvent>, setting: &mut EventListeningSettings| {
 
-                _ => EventListeningBehavior::WaitForEvents,
-            }
-        }
-    )?;
+    })?;
 
     canvas.drop(&client, window)?;
 
