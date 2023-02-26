@@ -5,27 +5,33 @@ use crate::{
 
 
 /// Reduces function arguments boilerplate
-struct WindowEventWrapper<'a, EventT> {
-    pub window: &'a mut Window,
-    pub handler: Box<dyn EventHandler<ShellClient>>,
-    pub event: &'a EventT,
-}
+// struct WindowEventWrapper<'a, EventT> {
+//     pub window: &'a mut Window,
+//     pub handler: &'a mut impl EventHandler<ShellClient>,
+//     pub event: &'a EventT,
+// }
 
 
-impl<'a, EventT> WindowEventWrapper<'a, EventT> {
+// impl<'a, EventT> WindowEventWrapper<'a, EventT> {
 
-    pub fn with<AnotherEventT>(self, event: &'a AnotherEventT) -> WindowEventWrapper<'a, AnotherEventT> {
-        WindowEventWrapper { window: self.window, handler: self.handler, event }
-    }
+//     pub fn with<AnotherEventT>(self, event: &'a AnotherEventT) -> WindowEventWrapper<'a, AnotherEventT> {
+//         WindowEventWrapper { window: self.window, handler: self.handler, event }
+//     }
 
-}
+// }
 
-
-const SUCCESS: Result<EventListeningBehavior> = Ok(EventListeningBehavior::GetNextEvent);
 
 
 
 impl ShellClient {
+
+    pub(crate) fn handle_message(
+        &self, window: Option<&mut Window>, event: &ShellMessage, handler: impl EventHandler<Self>
+    )
+        -> Result<()>
+    {
+        Ok(())
+    }
 
     /* fn handle_window_event(&self, wrapper: WindowEventWrapper<xcb::Event>) -> Result<EventListeningBehavior> {
         match wrapper.event {

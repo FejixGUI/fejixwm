@@ -274,7 +274,7 @@ impl ShellClient {
     }
 
 
-    fn make_shell_event(&self, event: xcb::Event) -> ShellEvent {
+    fn make_shell_event(&self, event: xcb::Event) -> ShellMessage {
         let window_handle = self.get_event_window_handle(&event);
 
         let is_global = if let Some(handle) = window_handle {
@@ -283,7 +283,7 @@ impl ShellClient {
             true
         };
 
-        ShellEvent { event, is_global, window_handle }
+        ShellMessage { event, is_global, window_handle }
     }
 
 
@@ -310,7 +310,7 @@ impl WindowTrait for Window {
 }
 
 
-impl ShellEventTrait for ShellEvent {
+impl ShellMessageTrait for ShellMessage {
     fn get_window_id(&self) -> Option<WindowId> {
         if self.is_global {
             None
@@ -324,7 +324,7 @@ impl ShellEventTrait for ShellEvent {
 impl ShellClientTrait for ShellClient {
 
     type Window = Window;
-    type ShellEvent = ShellEvent;
+    type ShellMessage = ShellMessage;
 
 
     fn new(info: &ShellClientInfo) -> Result<Self> {
@@ -364,7 +364,7 @@ impl ShellClientTrait for ShellClient {
     }
 
 
-    fn listen_to_events(&self, mut callback: impl EventCallback<Self>) -> Result<()> {
+    fn listen_to_events(&self, mut callback: impl MessageCallback<Self>) -> Result<()> {
         let mut settings = EventListeningSettings::default();
 
         let mut event = Option::<xcb::Event>::None;
@@ -392,11 +392,11 @@ impl ShellClientTrait for ShellClient {
     }
 
 
-    fn process_event(
-        &self, event: &Self::ShellEvent, window: Option<&mut Self::Window>, mut handler: impl EventHandler<Self>
+    fn process_message(
+        &self, event: &Self::ShellMessage, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
     ) -> Result<()> 
     {
-        Ok(())    
+        self.handle_message(window, event, handler)
     }
 
 

@@ -3,7 +3,7 @@
 pub(crate) use crate::core::{
     errors::*,
     events::{
-        Event, ShellEventTrait, EventCallback, EventHandler, EventListeningBehavior, EventListeningSettings,
+        Event, ShellMessageTrait, MessageCallback, EventHandler, EventListeningBehavior, EventListeningSettings,
     },
     *
 };
@@ -46,7 +46,7 @@ pub struct Window {
 }
 
 
-pub struct ShellEvent {
+pub struct ShellMessage {
     pub(crate) event: xcb::Event,
     pub(crate) is_global: bool,
     pub(crate) window_handle: Option<X11WindowHandle>,

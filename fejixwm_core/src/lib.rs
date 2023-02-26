@@ -10,6 +10,12 @@ This crate contains platform-independent code of FejixWM.
 * **Shell** - an operating system's graphical environment.
   Typical examples of shells are Microsoft Windows Shell, GNOME Shell, KDE Plasma.
 
+* **Shell message** - a message sent by the shell to a client. This is the primary way of communication between the 
+  shell and its clients. Shell messages can indicate input events (e.g. mouse movement, key press etc.), but besides
+  that shell messages often deliver special information for window state management or query data from clients.
+
+* **Event** - platform-independent information translated from shell messages that is useful for clients.
+
 * **Surface** - a rectangular pixel array displayed on screen by a shell.
   Surfaces are always managed by shells and are rarely directly accessible to programs.
 
@@ -21,17 +27,11 @@ This crate contains platform-independent code of FejixWM.
 * **Graphics API** - an API for displaying graphics on a window's surface, e.g. OpenGL or Vulkan.
   FejixWM provides a software rendering API called Rawpix.
 
-* **Shell event** - a message sent by the shell to a client to indicate that something has happened
-  (e.g. mouse has been moved, a key has been pressed etc.).
-
-### Specific to FejixWM
-
 * **Canvas** - an object used to display graphics, e.g. OpenGL context or Vulkan surface.
   Every window must have at most one canvas.
 
 * **Shell subsystem** - specific functionality that can be turned ON and OFF.
 
-* **Event** (not to be confused with the *shell event*) - a translated shell event that can be consumed by the program.
 
 */
 

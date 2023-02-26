@@ -9,9 +9,9 @@ extern crate x11;
 extern crate xcb;
 
 mod types;
-mod basic_impl;
+mod core_impl;
 mod subsystems_impl;
-mod events_impl;
+mod message_processing;
 pub mod implementation;
 
 

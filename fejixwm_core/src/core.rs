@@ -1,6 +1,6 @@
 use crate::{
     errors::*,
-    events::{Event, EventHandler, EventCallback, ShellEventTrait},
+    events::{Event, EventHandler, MessageCallback, ShellMessageTrait},
 };
 
 
@@ -60,7 +60,7 @@ pub trait ShellClientTrait : Sized {
 
     type Window : WindowTrait;
 
-    type ShellEvent : ShellEventTrait;
+    type ShellMessage : ShellMessageTrait;
 
 
     fn new(info: &ShellClientInfo)
@@ -68,14 +68,14 @@ pub trait ShellClientTrait : Sized {
 
 
     /// Runs an event loop that receives system events from the shell
-    fn listen_to_events(&self, callback: impl EventCallback<Self>)
+    fn listen_to_events(&self, callback: impl MessageCallback<Self>)
         -> Result<()>;
 
-    /// Translates the system event to zero or more FejixWM events, handles them and modifies the window state.
+    /// Translates the system message to zero or more FejixWM events, handles them and modifies the window state.
     /// 
     /// The `window` should be `None` if the event is global.
-    fn process_event(
-        &self, event: &Self::ShellEvent, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
+    fn process_message(
+        &self, message: &Self::ShellMessage, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
     )
         -> Result<()>;
 
