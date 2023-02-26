@@ -40,7 +40,7 @@ fn run() -> fejixwm::errors::Result<()> {
 
     let mut i = 0;
 
-    client.listen_to_events(|event: Option<&ShellMessage>, setting: &mut EventListeningSettings| {
+    client.listen_to_messages(|message: Option<&ShellMessage>, setting: &mut ListeningSettings| {
 
     })?;
 

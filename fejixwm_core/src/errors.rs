@@ -15,13 +15,14 @@ pub enum Error {
     /// An argument passed to a function is invalid
     InvalidArgument,
 
+    /// A subsystem is turned off globally
     SubsystemNotAvailable,
 
+    /// The subsystem state cannot be changed
     SubsystemForced,
 
+    /// You should specify a certain Cargo feature during compilation
     FeatureNotCompiled,
-
-    IncompleteWindowList,
 }
 
 
@@ -35,7 +36,6 @@ impl std::fmt::Display for Error {
             Self::SubsystemNotAvailable => write!(f, "the subsystem is not available"),
             Self::SubsystemForced => write!(f, "the subsystem state is forced"),
             Self::FeatureNotCompiled => write!(f, "feature was not compiled"),
-            Self::IncompleteWindowList => write!(f, "window list is incomplete"),
         }
     }
 }

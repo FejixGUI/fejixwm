@@ -4,12 +4,12 @@ use crate::{
 };
 
 
-/// An identifier of a FejixWM window.
+/// An identifier of a FejixWM window created by the client program.
 /// 
 /// Often corresponds to the window handle, but does not have the same meaning as the handle.
-/// For example, system events frequently contain window handles that do not point to the windows created by the
+/// For example, shell messages frequently contain window handles that do not point to the windows created by the
 /// FejixWM user. Such handles may point to the shell's root window, to the internal fake window created by FejixWM
-/// or even to NULL. We say that such events contain window handles but do not contain window identifiers.
+/// or even to NULL. We say that such messages contain window handles but do not contain window identifiers.
 pub type WindowId = usize;
 
 
@@ -50,7 +50,7 @@ pub trait WindowTrait : Sized {
 
     fn get_id(&self) -> WindowId;
 
-    /// Returns the cached size. The cached size is updated by [ShellClientTrait::process_event].
+    /// Returns the cached size. The cached size is updated by [ShellClientTrait::process_message].
     fn get_size(&self) -> PixelSize;
 
 }
@@ -67,8 +67,8 @@ pub trait ShellClientTrait : Sized {
         -> Result<Self>;
 
 
-    /// Runs an event loop that receives system events from the shell
-    fn listen_to_events(&self, callback: impl MessageCallback<Self>)
+    /// Runs an event loop that receives system messages from the shell
+    fn listen_to_messages(&self, callback: impl MessageCallback<Self>)
         -> Result<()>;
 
     /// Translates the system message to zero or more FejixWM events, handles them and modifies the window state.
@@ -80,11 +80,12 @@ pub trait ShellClientTrait : Sized {
         -> Result<()>;
 
 
-    /// Generates an artificial event called trigger event.
+    /// Generates an artificial message called trigger message.
     /// 
-    /// The event, as any other event, causes [ShellClientTrait::listen_to_events] to wake up while waiting for events.
-    /// Thus, this function can be used to awake the thread listening to events from another threads.
-    fn trigger_event(&self)
+    /// The message, as any other message, causes [ShellClientTrait::listen_to_messages] to wake up while waiting
+    /// for messages.
+    /// Thus, this function can be used to awake the thread waiting for messages from another threads.
+    fn trigger_message(&self)
         -> Result<()>;
 
 
@@ -147,6 +148,10 @@ pub trait ShellClientTrait : Sized {
 pub trait CanvasTrait : Sized {
 
     type ShellClient : ShellClientTrait;
+
+    /// Makes function types simpler.
+    /// 
+    /// Must be equal to `<Self::ShellClient as ShellClientTrait>::Window`
     type Window;
 
     type CanvasInfo;

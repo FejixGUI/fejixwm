@@ -115,31 +115,31 @@ impl ShellClient {
                     Expose(event) => Some(event.window()),
                     FocusIn(event) => Some(event.event()),
                     FocusOut(event) => Some(event.event()),
-                    // Got GraphicsExpose event (allowed by XSetGraphicsExposures)
-                    GraphicsExposure(event) => None,
                     GravityNotify(event) => Some(event.window()),
                     KeyPress(event) => Some(event.event()),
                     KeyRelease(event) => Some(event.event()),
-                    // Global keymap event
-                    KeymapNotify(event) => None,
                     LeaveNotify(event) => Some(event.event()),
                     MapNotify(event) => Some(event.window()),
                     MapRequest(event) => Some(event.window()),
-                    // Global keymap event
-                    MappingNotify(event) => None,
                     MotionNotify(event) => Some(event.event()),
-                    // Got NoExpose event (allowed by XSetGraphicsExposures)
-                    NoExposure(event) => None,
                     PropertyNotify(event) => Some(event.window()),
                     ReparentNotify(event) => Some(event.window()),
                     ResizeRequest(event) => Some(event.window()),
+                    UnmapNotify(event) => Some(event.window()),
+                    VisibilityNotify(event) => Some(event.window()),
+
+                    // Got GraphicsExpose event (allowed by XSetGraphicsExposures)
+                    GraphicsExposure(event) => None,
+                    // Got NoExpose event (allowed by XSetGraphicsExposures)
+                    NoExposure(event) => None,
+                    // Global keymap event
+                    KeymapNotify(event) => None,
+                    // Global keymap event
+                    MappingNotify(event) => None,
                     // Clipboard events
                     SelectionClear(event) => None,
                     SelectionNotify(event) => None,
                     SelectionRequest(event) => None,
-                    
-                    UnmapNotify(event) => Some(event.window()),
-                    VisibilityNotify(event) => Some(event.window()),
                 }
             }
 

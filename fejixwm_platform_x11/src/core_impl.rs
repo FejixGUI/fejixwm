@@ -345,7 +345,7 @@ impl ShellClientTrait for ShellClient {
     }
 
 
-    fn trigger_event(&self) -> Result<()> {
+    fn trigger_message(&self) -> Result<()> {
         let event = xcb::x::ClientMessageEvent::new(
             self.fake_window_handle,
             xcb::x::ATOM_ANY,
@@ -364,21 +364,21 @@ impl ShellClientTrait for ShellClient {
     }
 
 
-    fn listen_to_events(&self, mut callback: impl MessageCallback<Self>) -> Result<()> {
-        let mut settings = EventListeningSettings::default();
+    fn listen_to_messages(&self, mut callback: impl MessageCallback<Self>) -> Result<()> {
+        let mut settings = ListeningSettings::default();
 
         let mut event = Option::<xcb::Event>::None;
 
         loop {
             match settings.behavior {
-                EventListeningBehavior::Quit =>
+                ListeningBehavior::Quit =>
                     break,
 
-                EventListeningBehavior::GetNextEvent => {
+                ListeningBehavior::GetNextMessage => {
                     event = self.poll_for_event()?;
                 }
 
-                EventListeningBehavior::WaitForEvents => {
+                ListeningBehavior::WaitForMessages => {
                     event = Some(self.wait_for_event()?);
                 }
             }

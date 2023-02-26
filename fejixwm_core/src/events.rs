@@ -19,7 +19,7 @@ pub trait ShellMessageTrait : Sized {
 
 
 pub enum Event {
-    /// Sent by [ShellClientTrait::trigger_event]
+    /// Sent by [ShellClientTrait::trigger_message]
     Trigger,
 
     Close,
@@ -27,27 +27,27 @@ pub enum Event {
 }
 
 
-pub enum EventListeningBehavior {
-    /// Makes [ShellClientTrait::listen_to_events] handle the next event if available or None otherwise.
-    GetNextEvent,
+pub enum ListeningBehavior {
+    /// Makes [ShellClientTrait::listen_to_messages] handle the next event if available or None otherwise.
+    GetNextMessage,
 
-    /// Makes [ShellClientTrait::listen_to_events] return as soon as possible.
+    /// Makes [ShellClientTrait::listen_to_messages] return as soon as possible.
     Quit,
 
-    /// Makes [ShellClientTrait::listen_to_events] block its thread until any new events are received.
-    WaitForEvents,
+    /// Makes [ShellClientTrait::listen_to_messages] block its thread until any new events are received.
+    WaitForMessages,
 }
 
 
 #[derive(Default)]
-pub struct EventListeningSettings {
-    pub behavior: EventListeningBehavior
+pub struct ListeningSettings {
+    pub behavior: ListeningBehavior
 }
 
 
-/// No shell event is sent when the current behavior is [EventListeningBehavior::GetNextEvent] but there are no events.
+/// No shell event is sent when the current behavior is [ListeningBehavior::GetNextMessage] but there are no events.
 pub trait MessageCallback<ShellClientT: ShellClientTrait>
-    : FnMut(Option<&ShellClientT::ShellMessage>, &mut EventListeningSettings)
+    : FnMut(Option<&ShellClientT::ShellMessage>, &mut ListeningSettings)
 {}
 
 /// No window is passed when the event is global
@@ -58,7 +58,7 @@ pub trait EventHandler<ShellClientT: ShellClientTrait>
 // Make all closures that look like message callbacks actual message callbacks
 impl<ShellClientT: ShellClientTrait, EventCallbackT> MessageCallback<ShellClientT> for EventCallbackT
 where
-    EventCallbackT: FnMut(Option<&ShellClientT::ShellMessage>, &mut EventListeningSettings)
+    EventCallbackT: FnMut(Option<&ShellClientT::ShellMessage>, &mut ListeningSettings)
 {}
 
 // Make all closures that look like event handlers actual event handlers
@@ -79,8 +79,8 @@ impl std::fmt::Display for Event {
     }
 }
 
-impl Default for EventListeningBehavior {
+impl Default for ListeningBehavior {
     fn default() -> Self {
-        Self::GetNextEvent
+        Self::GetNextMessage
     }
 }
