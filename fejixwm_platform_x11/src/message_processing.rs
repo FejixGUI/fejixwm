@@ -5,20 +5,20 @@ use crate::{
 
 
 /// Reduces function arguments boilerplate
-// struct WindowEventWrapper<'a, EventT> {
-//     pub window: &'a mut Window,
-//     pub handler: &'a mut impl EventHandler<ShellClient>,
-//     pub event: &'a EventT,
-// }
+struct EventWrapper<'a, EventT> {
+    pub window: Option<&'a mut Window>,
+    pub handler: &'a mut dyn EventHandler<ShellClient>,
+    pub event: &'a EventT,
+}
 
 
-// impl<'a, EventT> WindowEventWrapper<'a, EventT> {
+impl<'a, EventT> EventWrapper<'a, EventT> {
 
-//     pub fn with<AnotherEventT>(self, event: &'a AnotherEventT) -> WindowEventWrapper<'a, AnotherEventT> {
-//         WindowEventWrapper { window: self.window, handler: self.handler, event }
-//     }
+    pub fn with<AnotherEventT>(self, event: &'a AnotherEventT) -> EventWrapper<'a, AnotherEventT> {
+        EventWrapper { window: self.window, handler: self.handler, event }
+    }
 
-// }
+}
 
 
 
@@ -26,14 +26,20 @@ use crate::{
 impl ShellClient {
 
     pub(crate) fn handle_message(
-        &self, window: Option<&mut Window>, event: &ShellMessage, handler: impl EventHandler<Self>
+        &self, message: &ShellMessage, window: Option<&mut Window>, mut handler: impl EventHandler<Self>
     )
         -> Result<()>
     {
-        Ok(())
+        let wrapper = EventWrapper { event: &message.event, window, handler: &mut handler };
+
+        if wrapper.window.is_some() {
+            self.handle_window_event(wrapper)
+        } else {
+            self.handle_global_event(wrapper)
+        }
     }
 
-    /* fn handle_window_event(&self, wrapper: WindowEventWrapper<xcb::Event>) -> Result<EventListeningBehavior> {
+    fn handle_window_event(&self, wrapper: EventWrapper<xcb::Event>) -> Result<()> {
         match wrapper.event {
             xcb::Event::X(event) => self.handle_x_event(wrapper.with(event)),
             _ => todo!()
@@ -41,49 +47,49 @@ impl ShellClient {
     }
 
 
-    fn handle_global_event(&self, event: &xcb::Event, handler: EventHandlerRef<Self>) -> Result<EventListeningBehavior> {
+    fn handle_global_event(&self, wrapper: EventWrapper<xcb::Event>) -> Result<()> {
         // TODO
-        SUCCESS
+        Ok(())
     }
 
 
-    fn handle_x_event(&self, wrapper: WindowEventWrapper<xcb::x::Event>) -> Result<EventListeningBehavior> {
+    fn handle_x_event(&self, wrapper: EventWrapper<xcb::x::Event>) -> Result<()> {
         match wrapper.event {
-            xcb::x::Event::ClientMessage(event) => self.handle_client_message(wrapper.with(event)),
+            xcb::x::Event::ClientMessage(event) =>
+                self.handle_client_message(wrapper.with(event)),
 
             // TODO handle more events
-            _ => SUCCESS
+            _ => Ok(())
         }
     }
 
 
-    fn handle_client_message(&self, wrapper: WindowEventWrapper<xcb::x::ClientMessageEvent>) -> Result<EventListeningBehavior> {
+    fn handle_client_message(&self, wrapper: EventWrapper<xcb::x::ClientMessageEvent>) -> Result<()> {
         use xcb::Xid;
 
         let message_data = wrapper.event.data();
         
         if let xcb::x::ClientMessageData::Data32(data32) = wrapper.event.data() {
-
             let message_type = data32[0];
 
             if message_type == self.atoms.WM_DELETE_WINDOW.resource_id() {
-                return self.handle_window_close(wrapper.with(&()));
+                self.handle_window_close(wrapper.with(&()))?;
             } else if message_type == self.atoms._NET_WM_PING.resource_id() {
                 self.handle_ping(wrapper)?;
-                return SUCCESS;
             }
         }
 
-        return SUCCESS;
+        return Ok(());
     }
 
 
-    fn handle_window_close(&self, wrapper: WindowEventWrapper<()>) -> Result<EventListeningBehavior> {
-        Ok((wrapper.handler)(self, Some(wrapper.window), Event::Close))
+    fn handle_window_close(&self, wrapper: EventWrapper<()>) -> Result<()> {
+        (wrapper.handler)(Event::Close, wrapper.window);
+        Ok(())
     }
 
 
-    fn handle_ping(&self, wrapper: WindowEventWrapper<xcb::x::ClientMessageEvent>) -> Result<()> {
+    fn handle_ping(&self, wrapper: EventWrapper<xcb::x::ClientMessageEvent>) -> Result<()> {
         self.connection.send_and_check_request(&xcb::x::SendEvent {
             propagate: false,
             destination: xcb::x::SendEventDest::Window(self.get_default_window()),
@@ -93,7 +99,7 @@ impl ShellClient {
         .or_else(|_| Err(Error::PlatformApiFailed("cannot respond to system ping")))?;
         
         Ok(())
-    } */
+    }
 
 
     pub(crate) fn get_event_window_handle(&self, event: &xcb::Event) -> Option<X11WindowHandle> {

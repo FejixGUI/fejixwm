@@ -29,23 +29,20 @@ pub enum Event {
 
 pub enum ListeningBehavior {
     /// Makes [ShellClientTrait::listen_to_messages] handle the next event if available or None otherwise.
-    GetNextMessage,
-
-    /// Makes [ShellClientTrait::listen_to_messages] return as soon as possible.
-    Quit,
+    Peek,
 
     /// Makes [ShellClientTrait::listen_to_messages] block its thread until any new events are received.
-    WaitForMessages,
+    Await,
 }
 
 
-#[derive(Default)]
 pub struct ListeningSettings {
-    pub behavior: ListeningBehavior
+    pub behavior: ListeningBehavior,
+    pub should_stop: bool,
 }
 
 
-/// No shell event is sent when the current behavior is [ListeningBehavior::GetNextMessage] but there are no events.
+/// No shell event is sent when the current behavior is [ListeningBehavior::Peek] but there are no events.
 pub trait MessageCallback<ShellClientT: ShellClientTrait>
     : FnMut(Option<&ShellClientT::ShellMessage>, &mut ListeningSettings)
 {}
@@ -79,8 +76,19 @@ impl std::fmt::Display for Event {
     }
 }
 
+
 impl Default for ListeningBehavior {
     fn default() -> Self {
-        Self::GetNextMessage
+        Self::Peek
+    }
+}
+
+
+impl Default for ListeningSettings {
+    fn default() -> Self {
+        Self {
+            behavior: ListeningBehavior::default(),
+            should_stop: false,
+        }
     }
 }

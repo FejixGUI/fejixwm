@@ -7,8 +7,6 @@ use fejixwm::{
     implementation::null_canvas::NullCanvas
 };
 
-const WID: WindowId = 0;
-
 fn main() {
     if let Err(error) = run() {
         println!("FejixWM error: {error}");
@@ -38,10 +36,27 @@ fn run() -> fejixwm::errors::Result<()> {
     client.set_visible(&mut window, true)?;
     client.set_title(&mut window, "Привіт, Rust!")?;
 
-    let mut i = 0;
+    client.listen_to_messages(|message: Option<&ShellMessage>, settings: &mut ListeningSettings| {
+        if message.is_none() {
+            settings.behavior = ListeningBehavior::Await;
+            return;
+        }
 
-    client.listen_to_messages(|message: Option<&ShellMessage>, setting: &mut ListeningSettings| {
+        let message = message.unwrap();
 
+        let maybe_window = if message.get_window_id() == Some(window.get_id()) {
+            Some(&mut window)
+        } else {
+            None
+        };
+
+        client.process_message(message, maybe_window, |event: Event, window: Option<&mut Window>| {
+            println!("{}", event);
+
+            if let Event::Close = event {
+                settings.should_stop = true;
+            }
+        });
     })?;
 
     canvas.drop(&client, window)?;

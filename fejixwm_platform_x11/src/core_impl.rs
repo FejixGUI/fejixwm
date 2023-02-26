@@ -370,15 +370,16 @@ impl ShellClientTrait for ShellClient {
         let mut event = Option::<xcb::Event>::None;
 
         loop {
-            match settings.behavior {
-                ListeningBehavior::Quit =>
-                    break,
+            if settings.should_stop {
+                break;
+            }
 
-                ListeningBehavior::GetNextMessage => {
+            match settings.behavior {
+                ListeningBehavior::Peek => {
                     event = self.poll_for_event()?;
                 }
 
-                ListeningBehavior::WaitForMessages => {
+                ListeningBehavior::Await => {
                     event = Some(self.wait_for_event()?);
                 }
             }
@@ -393,10 +394,10 @@ impl ShellClientTrait for ShellClient {
 
 
     fn process_message(
-        &self, event: &Self::ShellMessage, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
+        &self, message: &Self::ShellMessage, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
     ) -> Result<()> 
     {
-        self.handle_message(window, event, handler)
+        self.handle_message(message, window, handler)
     }
 
 

@@ -67,7 +67,10 @@ pub trait ShellClientTrait : Sized {
         -> Result<Self>;
 
 
-    /// Runs an event loop that receives system messages from the shell
+    /// Runs a loop that receives system messages from the shell.
+    /// 
+    /// The message callback should find a window by the identifier possibly contained in the message and process
+    /// the message with [ShellClientTrait::process_message]
     fn listen_to_messages(&self, callback: impl MessageCallback<Self>)
         -> Result<()>;
 
