@@ -4,6 +4,11 @@ use crate::{
 };
 
 
+use std::{
+    any::Any
+};
+
+
 /// An identifier of a FejixWM window created by the client program.
 /// 
 /// Often corresponds to the window handle, but does not have the same meaning as the handle.
@@ -79,22 +84,14 @@ pub trait ShellClientTrait : Sized {
     /// The `window` should be `None` if the event is global.
     fn process_message(
         &self, message: &Self::ShellMessage, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
-    )
-        -> Result<()>;
+    ) -> Result<()>;
 
 
-    /// Generates an artificial message called trigger message.
+    /// Generates an artificial message and wakes up the thread listening to messages.
     /// 
-    /// The message, as any other message, causes [ShellClientTrait::listen_to_messages] to wake up while waiting
-    /// for messages.
-    /// Thus, this function can be used to awake the thread waiting for messages from another threads.
-    fn trigger_message(&self)
+    /// The generated message will be translated to a [crate::events::UserEvent].
+    fn post_message(&self, user_data: Option<Box<dyn Any>>)
         -> Result<()>;
-
-
-    /// Asks the shell for the current window size.
-    fn get_window_size(&self, window: &Self::Window)
-        -> Result<PixelSize>;
 
 
     /// Returns true if the subystem is globally available
@@ -143,6 +140,10 @@ pub trait ShellClientTrait : Sized {
     }
 
 
+    /// Asks the shell for the current window size.
+    fn get_window_size(&self, window: &Self::Window)
+        -> Result<PixelSize>;
+
 
 }
 
@@ -183,7 +184,7 @@ impl std::fmt::Display for PixelSize {
 
 
 impl ShellSubsystem {
-    pub fn list() -> &'static [Self] {
+    pub fn all() -> &'static [Self] {
         &[
             Self::KeyboardInput,
             Self::MouseInput,

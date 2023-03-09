@@ -12,6 +12,7 @@ pub(crate) use x11::xlib;
 pub(crate) use xcb;
 
 pub(crate) use std::{
+    any::Any,
     ptr::{null, null_mut},
     ffi,
 };

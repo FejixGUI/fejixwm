@@ -252,7 +252,7 @@ impl ShellClient {
 
 
     fn destroy_window_subsystems(&self, window: &mut Window) -> Result<()> {
-        for subsystem in ShellSubsystem::list() {
+        for subsystem in ShellSubsystem::all() {
             if !self.is_subsystem_forced(window, subsystem.clone()) {
                 self.disable_subsystem(window, subsystem.clone())?;
             }
@@ -284,6 +284,50 @@ impl ShellClient {
         };
 
         ShellMessage { event, is_global, window_handle }
+    }
+
+
+    fn user_data_to_event_payload(data: Option<Box<dyn Any>>) -> [u8; 20] {
+        let data_ptr = if let Some(data) = data {
+            &*data as *const dyn Any as *const u8
+        } else {
+            null()
+        };
+
+        let data_address = data_ptr as usize;
+        let data_address_ptr = &data_address as *const usize as *const u8;
+        let data_address_length = std::mem::size_of::<usize>();
+
+        let mut event_payload = [0u8; 20];
+        let event_payload_ptr = &mut event_payload as *mut u8;
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(data_address_ptr, event_payload_ptr, data_address_length);
+        }
+
+        event_payload
+    }
+
+    fn event_payload_to_user_data(mut event_payload: [u8; 20]) -> Option<Box<dyn Any>> {
+        let mut data_address = usize::default();
+        let data_address_ptr = &mut data_address as *mut usize as *mut u8;
+        let data_address_length = std::mem::size_of::<usize>();
+
+        let event_payload_ptr = &mut event_payload as *mut u8;
+
+        unsafe {
+            std::ptr::copy_nonoverlapping(event_payload_ptr, data_address_ptr, data_address_length);
+        }
+
+        let data_ptr = data_address as *const u8 as *const dyn Any;
+
+        if data_ptr.is_null() {
+            return None;
+        } else {
+            unsafe {
+                return Some(Box::from_raw(data_ptr as *mut dyn Any));
+            }
+        }
     }
 
 
@@ -345,11 +389,13 @@ impl ShellClientTrait for ShellClient {
     }
 
 
-    fn trigger_message(&self) -> Result<()> {
+    fn post_message(&self, data: Option<Box<dyn Any>>) -> Result<()> {
+        let payload = Self::user_data_to_event_payload(data);
+
         let event = xcb::x::ClientMessageEvent::new(
             self.fake_window_handle,
             xcb::x::ATOM_ANY,
-            xcb::x::ClientMessageData::Data8([0u8; 20])
+            xcb::x::ClientMessageData::Data8(payload)
         );
 
         self.connection.send_and_check_request(&xcb::x::SendEvent {

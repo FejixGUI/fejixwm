@@ -18,7 +18,7 @@ fn run() -> fejixwm::errors::Result<()> {
 
     let client = ShellClient::new(&ShellClientInfo {
         id: "dev.fejix.fejixwm.devtest",
-        subsystems: ShellSubsystem::list()
+        subsystems: ShellSubsystem::all()
     })?;
 
     let (mut window, mut canvas) = NullCanvas::new(
@@ -29,7 +29,7 @@ fn run() -> fejixwm::errors::Result<()> {
         &()
     )?;
 
-    for subsystem in ShellSubsystem::list() {
+    for subsystem in ShellSubsystem::all() {
         client.enable_subsystem(&mut window, subsystem.clone())?;
     }
 

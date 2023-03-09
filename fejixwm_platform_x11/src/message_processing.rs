@@ -48,7 +48,7 @@ impl ShellClient {
 
 
     fn handle_global_event(&self, wrapper: EventWrapper<xcb::Event>) -> Result<()> {
-        // TODO
+        // TODO global events
         Ok(())
     }
 
@@ -79,12 +79,14 @@ impl ShellClient {
             }
         }
 
+        // TODO handle user event
+
         return Ok(());
     }
 
 
     fn handle_window_close(&self, wrapper: EventWrapper<()>) -> Result<()> {
-        (wrapper.handler)(Event::Close, wrapper.window);
+        (wrapper.handler)(Event::WindowEvent(WindowEvent::Close), wrapper.window);
         Ok(())
     }
 
