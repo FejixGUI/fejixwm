@@ -88,7 +88,7 @@ impl ShellClient {
         self.connection.send_and_check_request(&xcb::x::CreateWindow {
             wid: self.fake_window_handle,
             parent: self.get_default_window(),
-            class: xcb::x::WindowClass::InputOutput,
+            class: xcb::x::WindowClass::InputOnly,
             
             x: 0, y: 0, width: 1, height: 1, border_width: 0,
             
@@ -270,7 +270,7 @@ impl ShellClient {
 
     fn wait_for_event(&self) -> Result<xcb::Event> {
         self.connection.wait_for_event()
-            .or_else(|_| Err(Error::PlatformApiFailed("error while waitinf for event")))
+            .or_else(|_| Err(Error::PlatformApiFailed("error while waiting for event")))
     }
 
 
@@ -288,44 +288,32 @@ impl ShellClient {
 
 
     fn user_data_to_event_payload(data: Option<Box<dyn Any>>) -> [u8; 20] {
-        let data_ptr = if let Some(data) = data {
-            &*data as *const dyn Any as *const u8
+        let data_address: usize = if let Some(data) = data {
+            // Wrap data in a box again so that the wide pointer is not accidentally converted to a thin pointer
+            Box::into_raw(Box::new(data)) as *mut u8 as usize
         } else {
-            null()
+            0
         };
 
-        let data_address = data_ptr as usize;
-        let data_address_ptr = &data_address as *const usize as *const u8;
-        let data_address_length = std::mem::size_of::<usize>();
-
         let mut event_payload = [0u8; 20];
-        let event_payload_ptr = &mut event_payload as *mut u8;
 
         unsafe {
-            std::ptr::copy_nonoverlapping(data_address_ptr, event_payload_ptr, data_address_length);
+            *(&mut event_payload as *mut u8 as *mut usize) = data_address;
         }
 
         event_payload
     }
 
-    fn event_payload_to_user_data(mut event_payload: [u8; 20]) -> Option<Box<dyn Any>> {
-        let mut data_address = usize::default();
-        let data_address_ptr = &mut data_address as *mut usize as *mut u8;
-        let data_address_length = std::mem::size_of::<usize>();
+    pub(crate) fn event_payload_to_user_data(mut event_payload: [u8; 20]) -> Option<Box<dyn Any>> {
+        let data_address: usize = unsafe {
+            *(&mut event_payload as *mut u8 as *mut usize)
+        };
 
-        let event_payload_ptr = &mut event_payload as *mut u8;
-
-        unsafe {
-            std::ptr::copy_nonoverlapping(event_payload_ptr, data_address_ptr, data_address_length);
-        }
-
-        let data_ptr = data_address as *const u8 as *const dyn Any;
-
-        if data_ptr.is_null() {
+        if data_address == 0 {
             return None;
         } else {
             unsafe {
-                return Some(Box::from_raw(data_ptr as *mut dyn Any));
+                return Some(*Box::from_raw(data_address as *mut u8 as *mut Box<dyn Any>));
             }
         }
     }
@@ -394,7 +382,7 @@ impl ShellClientTrait for ShellClient {
 
         let event = xcb::x::ClientMessageEvent::new(
             self.fake_window_handle,
-            xcb::x::ATOM_ANY,
+            self.atoms.FEJIXWM_USER_EVENT,
             xcb::x::ClientMessageData::Data8(payload)
         );
 
@@ -443,6 +431,7 @@ impl ShellClientTrait for ShellClient {
         &self, message: &Self::ShellMessage, window: Option<&mut Self::Window>, handler: impl EventHandler<Self>
     ) -> Result<()> 
     {
+        self.assert_can_process_message(message, &window)?;
         self.handle_message(message, window, handler)
     }
 

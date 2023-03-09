@@ -33,7 +33,9 @@ pub struct ShellClient {
     pub(crate) default_screen_number: i32,
     pub(crate) class_name: String,
 
-    /// Passed to X11 functions that take a window handle but have no practical reason for doing so
+    /// Passed to X11 functions that take a window handle but have no practical reason for doing so.
+    /// 
+    /// This window is *never mapped* and *input-only*.
     pub(crate) fake_window_handle: X11WindowHandle,
 
     pub(crate) text_input_subsystem: Option<X11GlobalTextInputSubsystem>,
@@ -58,13 +60,14 @@ xcb::atoms_struct! {
     pub(crate) struct X11Atoms {
         pub WM_PROTOCOLS => b"WM_PROTOCOLS",
         pub WM_DELETE_WINDOW => b"WM_DELETE_WINDOW",
-        pub _NET_WM_PING => b"_NET_WM_PING",
-
-        pub _NET_WM_NAME => b"_NET_WM_NAME",
         pub UTF8_STRING => b"UTF8_STRING",
-
+        
+        pub _NET_WM_NAME => b"_NET_WM_NAME",
+        pub _NET_WM_PING => b"_NET_WM_PING",
         pub _NET_WM_SYNC_REQUEST => b"_NET_WM_SYNC_REQUEST",
         pub _NET_WM_SYNC_REQUEST_COUNTER => b"_NET_WM_SYNC_REQUEST_COUNTER",
+
+        pub FEJIXWM_USER_EVENT => b"FEJIXWM_USER_EVENT" only_if_exists = false,
     }
 }
 

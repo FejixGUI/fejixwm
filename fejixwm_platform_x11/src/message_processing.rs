@@ -32,24 +32,30 @@ impl ShellClient {
     {
         let wrapper = EventWrapper { event: &message.event, window, handler: &mut handler };
 
-        if wrapper.window.is_some() {
-            self.handle_window_event(wrapper)
-        } else {
+        if message.is_global() {
             self.handle_global_event(wrapper)
+        } else {
+            self.handle_window_event(wrapper)
         }
     }
 
     fn handle_window_event(&self, wrapper: EventWrapper<xcb::Event>) -> Result<()> {
         match wrapper.event {
-            xcb::Event::X(event) => self.handle_x_event(wrapper.with(event)),
-            _ => todo!()
+            xcb::Event::X(event) =>
+                self.handle_x_event(wrapper.with(event)),
+
+            _ => Ok(())
         }
     }
 
 
     fn handle_global_event(&self, wrapper: EventWrapper<xcb::Event>) -> Result<()> {
-        // TODO global events
-        Ok(())
+        match wrapper.event {
+            xcb::Event::X(event) =>
+                self.handle_global_x_event(wrapper.with(event)),
+
+            _ => Ok(())
+        }
     }
 
 
@@ -57,6 +63,9 @@ impl ShellClient {
         match wrapper.event {
             xcb::x::Event::ClientMessage(event) =>
                 self.handle_client_message(wrapper.with(event)),
+
+            xcb::x::Event::ConfigureNotify(event) =>
+                self.handle_configure_event(wrapper.with(event)),
 
             // TODO handle more events
             _ => Ok(())
@@ -68,7 +77,7 @@ impl ShellClient {
         use xcb::Xid;
 
         let message_data = wrapper.event.data();
-        
+
         if let xcb::x::ClientMessageData::Data32(data32) = wrapper.event.data() {
             let message_type = data32[0];
 
@@ -77,9 +86,8 @@ impl ShellClient {
             } else if message_type == self.atoms._NET_WM_PING.resource_id() {
                 self.handle_ping(wrapper)?;
             }
-        }
 
-        // TODO handle user event
+        }
 
         return Ok(());
     }
@@ -100,6 +108,51 @@ impl ShellClient {
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot respond to system ping")))?;
         
+        Ok(())
+    }
+
+
+    fn handle_configure_event(&self, mut wrapper: EventWrapper<xcb::x::ConfigureNotifyEvent>) -> Result<()> {
+        let new_size = PixelSize::new(wrapper.event.width() as u32, wrapper.event.height() as u32);
+        let window = wrapper.window.as_mut().unwrap();
+
+        if window.state.size != new_size {
+            window.state.size = new_size.clone();
+    
+            let event = Event::WindowEvent(WindowEvent::Resize { new_size });
+            (wrapper.handler)(event, wrapper.window);
+        }
+
+
+        Ok(())
+    }
+
+
+    fn handle_global_x_event(&self, wrapper: EventWrapper<xcb::x::Event>) -> Result<()> {
+        match wrapper.event {
+            xcb::x::Event::ClientMessage(event) =>
+                self.handle_global_client_message(wrapper.with(event)),
+
+            _ => Ok(())
+        }
+    }
+
+
+    fn handle_global_client_message(&self, wrapper: EventWrapper<xcb::x::ClientMessageEvent>) -> Result<()> {
+        if wrapper.event.r#type() == self.atoms.FEJIXWM_USER_EVENT {
+            self.handle_user_event(wrapper)?;
+        }
+
+        Ok(())
+    }
+
+
+    fn handle_user_event(&self, wrapper: EventWrapper<xcb::x::ClientMessageEvent>) -> Result<()> {
+        if let xcb::x::ClientMessageData::Data8(payload) = wrapper.event.data() {
+            let data = Self::event_payload_to_user_data(payload);
+            (wrapper.handler)(Event::UserEvent(UserEvent{ data }), wrapper.window);
+        }
+
         Ok(())
     }
 
@@ -151,7 +204,7 @@ impl ShellClient {
                 }
             }
 
-            _ => todo!()
+            _ => todo!("Handle extraction of window IDs from other X11 events")
         }
     }
 

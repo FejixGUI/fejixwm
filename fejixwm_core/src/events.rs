@@ -39,7 +39,7 @@ pub enum WindowEvent {
 
 
 pub struct UserEvent {
-    data: Option<Box<dyn Any>>
+    pub data: Option<Box<dyn Any>>
 }
 
 

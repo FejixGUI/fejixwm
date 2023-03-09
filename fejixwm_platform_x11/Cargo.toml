@@ -3,6 +3,8 @@ name = "fejixwm_platform_x11"
 version = "0.0.1"
 description = "X11 platform implementation of Fejix WM"
 
+edition = "2021"
+
 [lib]
 
 [features]
@@ -13,4 +15,4 @@ graphics_opengl = ["xcb/glx"]
 fejixwm_core = { path = "../fejixwm_core" }
 
 xcb = { version = "~1.2", features = ["xlib_xcb", "sync"] }
-x11 = { version = "~2.20", features = ["xlib"] }
+x11 = { version = "~2.21", features = ["xlib"] }

@@ -87,6 +87,18 @@ pub trait ShellClientTrait : Sized {
     ) -> Result<()>;
 
 
+    /// Returns `Err` if processing the message with the provided optional window makes no sense.
+    fn assert_can_process_message(&self, message: &Self::ShellMessage, window: &Option<&mut Self::Window>)
+        -> Result<()>
+    {
+        if (message.is_global() && window.is_none()) || (!message.is_global() && window.is_some()) {
+            Ok(())
+        } else {
+            Err(Error::InvalidArgument)
+        }
+    }
+
+
     /// Generates an artificial message and wakes up the thread listening to messages.
     /// 
     /// The generated message will be translated to a [crate::events::UserEvent].
@@ -179,6 +191,13 @@ impl PixelSize {
 impl std::fmt::Display for PixelSize {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "({},{})", self.width, self.height)
+    }
+}
+
+
+impl PartialEq for PixelSize {
+    fn eq(&self, other: &Self) -> bool {
+        self.width == other.width && self.height == other.height
     }
 }
 
