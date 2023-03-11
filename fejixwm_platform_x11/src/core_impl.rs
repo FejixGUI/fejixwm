@@ -150,7 +150,7 @@ impl ShellClient {
             parent: self.get_default_window(),
             class: xcb::x::WindowClass::InputOutput,
             
-            x: 0,
+            x: 0, // Coordinates are often ignored
             y: 0,
             width: info.size.width as u16,
             height: info.size.height as u16,
@@ -160,7 +160,10 @@ impl ShellClient {
             visual: visual_info.visualid,
             value_list: &[
                 xcb::x::Cw::BackPixel(self.get_default_screen().black_pixel()),
-                xcb::x::Cw::EventMask(xcb::x::EventMask::all()),
+                xcb::x::Cw::EventMask(xcb::x::EventMask::all().difference(
+                    xcb::x::EventMask::SUBSTRUCTURE_NOTIFY
+                    | xcb::x::EventMask::SUBSTRUCTURE_REDIRECT
+                )),
                 xcb::x::Cw::Colormap(visual_info.colormap)
             ]
         })

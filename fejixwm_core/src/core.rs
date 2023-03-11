@@ -45,6 +45,7 @@ pub struct ShellClientInfo<'a> {
 }
 
 
+// TODO Window class (default/tooltip/splash/menu/etc.), flags, parent, etc.
 #[derive(Clone)]
 pub struct WindowInfo {
     pub size: PixelSize,

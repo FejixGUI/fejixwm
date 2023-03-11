@@ -64,8 +64,8 @@ impl ShellClient {
             xcb::x::Event::ClientMessage(event) =>
                 self.handle_client_message(wrapper.with(event)),
 
-            xcb::x::Event::ConfigureNotify(event) =>
-                self.handle_configure_event(wrapper.with(event)),
+            xcb::x::Event::ResizeRequest(event) =>
+                self.handle_resize_request_event(wrapper.with(event)),
 
             // TODO handle more events
             _ => Ok(())
@@ -103,7 +103,7 @@ impl ShellClient {
         self.connection.send_and_check_request(&xcb::x::SendEvent {
             propagate: false,
             destination: xcb::x::SendEventDest::Window(self.get_default_window()),
-            event_mask: xcb::x::EventMask::all(),
+            event_mask: xcb::x::EventMask::NO_EVENT,
             event: wrapper.event
         })
         .or_else(|_| Err(Error::PlatformApiFailed("cannot respond to system ping")))?;
@@ -112,7 +112,7 @@ impl ShellClient {
     }
 
 
-    fn handle_configure_event(&self, mut wrapper: EventWrapper<xcb::x::ConfigureNotifyEvent>) -> Result<()> {
+    fn handle_resize_request_event(&self, mut wrapper: EventWrapper<xcb::x::ResizeRequestEvent>) -> Result<()> {
         let new_size = PixelSize::new(wrapper.event.width() as u32, wrapper.event.height() as u32);
         let window = wrapper.window.as_mut().unwrap();
 
@@ -122,8 +122,7 @@ impl ShellClient {
             let event = Event::WindowEvent(WindowEvent::Resize { new_size });
             (wrapper.handler)(event, wrapper.window);
         }
-
-
+        
         Ok(())
     }
 
@@ -168,7 +167,7 @@ impl ShellClient {
                     CirculateRequest(event) => Some(event.window()),
                     ClientMessage(event) => Some(event.window()),
                     ColormapNotify(event) => Some(event.window()),
-                    ConfigureNotify(event) => Some(event.window()),
+                    ConfigureNotify(event) => Some(event.event()),
                     ConfigureRequest(event) => Some(event.window()),
                     CreateNotify(event) => Some(event.window()),
                     DestroyNotify(event) => Some(event.window()),
